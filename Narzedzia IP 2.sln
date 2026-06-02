@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.37131.7
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Narzedzia IP 2", "Narzedzia IP 2\Narzedzia IP 2.csproj", "{34803150-97DF-4986-AF42-A9C72488A5DC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{34803150-97DF-4986-AF42-A9C72488A5DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34803150-97DF-4986-AF42-A9C72488A5DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34803150-97DF-4986-AF42-A9C72488A5DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34803150-97DF-4986-AF42-A9C72488A5DC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8BE7CA84-8906-4BE3-8975-02DC66EE5D55}
+	EndGlobalSection
+EndGlobal
