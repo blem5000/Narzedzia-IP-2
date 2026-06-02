@@ -1,17 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 
-namespace Narzedzia_IP_2
+namespace NarzedziaIP
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            // Prevent WPF from shutting down when the first dialog window closes.
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            DhcpWindow dhcpWindow = new DhcpWindow();
+
+            bool? result = dhcpWindow.ShowDialog();
+
+            if (result == true)
+            {
+                MainWindow mainWindow = new MainWindow(dhcpWindow.DhcpIp);
+
+                // Set real main window
+                MainWindow = mainWindow;
+
+                // From now on, close the application when MainWindow closes
+                ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+                mainWindow.Show();
+            }
+            else
+            {
+                Shutdown();
+            }
+        }
     }
 }
