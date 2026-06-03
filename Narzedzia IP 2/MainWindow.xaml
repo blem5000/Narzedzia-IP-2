@@ -6,7 +6,7 @@
         Height="500"
         FontFamily="Segoe UI"
         FontSize="14"
-        ResizeMode="NoResize"
+        ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
