@@ -135,6 +135,9 @@ namespace NarzedziaIP
             lblIP.Text = "";
             lblMAC.Text = "";
 
+            lblDnsWarning.Text = "";
+            lblDnsWarning.Visibility = Visibility.Collapsed;
+
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
             btnMSRA.IsEnabled = false;
@@ -185,6 +188,9 @@ namespace NarzedziaIP
             lblIP.Text = "Szukam...";
             lblMAC.Text = "Szukam...";
 
+            lblDnsWarning.Text = "";
+            lblDnsWarning.Visibility = Visibility.Collapsed;
+
             try
             {
                 List<DhcpLease> leases = await GetDhcpLeasesAsync(_dhcpIp, hostname);
@@ -222,6 +228,8 @@ namespace NarzedziaIP
                     );
 
                     rtbHistoria.ScrollToEnd();
+
+                    await CheckDnsVsDhcpAsync(hostname, poprawnyIP);
 
                     btnCopyIP.IsEnabled = true;
                     btnCopyMAC.IsEnabled = true;
@@ -619,7 +627,55 @@ foreach ($scope in $scopes) {{
                 return;
             }
 
-            Process.Start("msra", $"/offerra {ip}");
+            string windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+            string msraPathSysnative = System.IO.Path.Combine(windowsDir, "Sysnative", "msra.exe");
+            string msraPathSystem32 = System.IO.Path.Combine(windowsDir, "System32", "msra.exe");
+
+            string msraPath = null;
+
+            // If app runs as 32-bit on 64-bit Windows, Sysnative gives access to real System32
+            if (Environment.Is64BitOperatingSystem && !Environment.Is64BitProcess && System.IO.File.Exists(msraPathSysnative))
+            {
+                msraPath = msraPathSysnative;
+            }
+            else if (System.IO.File.Exists(msraPathSystem32))
+            {
+                msraPath = msraPathSystem32;
+            }
+
+            if (string.IsNullOrWhiteSpace(msraPath))
+            {
+                MessageBox.Show(
+                    "Nie znaleziono pliku msra.exe.\n\nSprawdź, czy Pomoc zdalna Microsoft jest dostępna na tym komputerze.",
+                    "MSRA - brak pliku",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
+                return;
+            }
+
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = msraPath,
+                    Arguments = "/offerra " + ip,
+                    UseShellExecute = false
+                };
+
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Nie udało się uruchomić MSRA.\n\n" + ex.Message,
+                    "Błąd MSRA",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
         }
 
 
@@ -705,6 +761,64 @@ foreach ($scope in $scopes) {{
             {
                 SystemSounds.Hand.Play();
                 return;
+            }
+        }
+
+        private async Task<List<string>> GetDnsIPv4AddressesAsync(string hostname)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    IPAddress[] addresses = Dns.GetHostAddresses(hostname);
+
+                    return addresses
+                        .Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        .Select(a => a.ToString())
+                        .Distinct()
+                        .ToList();
+                }
+                catch
+                {
+                    return new List<string>();
+                }
+            });
+        }
+
+        private async Task CheckDnsVsDhcpAsync(string hostname, IEnumerable<string> dhcpIps)
+        {
+            lblDnsWarning.Text = "";
+            lblDnsWarning.Visibility = Visibility.Collapsed;
+
+            if (string.IsNullOrWhiteSpace(hostname))
+                return;
+
+            if (IsIPv4Address(hostname))
+                return;
+
+            List<string> dnsIps = await GetDnsIPv4AddressesAsync(hostname);
+            List<string> dhcpIpList = dhcpIps
+                .Where(ip => IsIPv4Address(ip))
+                .Distinct()
+                .ToList();
+
+            if (dnsIps.Count == 0 || dhcpIpList.Count == 0)
+                return;
+
+            bool anyMatch = dnsIps.Any(dnsIp => dhcpIpList.Contains(dnsIp));
+
+            if (!anyMatch)
+            {
+                lblDnsWarning.Text =
+                    "IP w DNS jest inny niż w DHCP. DNS: " + string.Join(", ", dnsIps);
+
+                lblDnsWarning.Visibility = Visibility.Visible;
+
+                rtbHistoria.AppendText(
+                    $"{hostname}\tDNS różni się od DHCP. DNS: {string.Join(", ", dnsIps)}\tDHCP: {string.Join(", ", dhcpIpList)}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
+                );
+
+                rtbHistoria.ScrollToEnd();
             }
         }
     }

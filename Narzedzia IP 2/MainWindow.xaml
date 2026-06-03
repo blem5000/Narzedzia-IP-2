@@ -132,6 +132,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <Grid.ColumnDefinitions>
@@ -140,29 +141,40 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Text="IP:"
-                                       FontWeight="Bold"
-                                       Grid.Row="0"
-                                       Grid.Column="0"
-                                       Margin="0,0,15,10"/>
+               FontWeight="Bold"
+               Grid.Row="0"
+               Grid.Column="0"
+               Margin="0,0,15,10"/>
 
                             <TextBlock x:Name="lblIP"
-                                       Text=""
-                                       Grid.Row="0"
-                                       Grid.Column="1"
-                                       Margin="0,0,0,10"
-                                       TextWrapping="Wrap"/>
+               Text=""
+               Grid.Row="0"
+               Grid.Column="1"
+               Margin="0,0,0,10"
+               TextWrapping="Wrap"/>
 
                             <TextBlock Text="MAC:"
-                                       FontWeight="Bold"
-                                       Grid.Row="1"
-                                       Grid.Column="0"
-                                       Margin="0,0,15,0"/>
+               FontWeight="Bold"
+               Grid.Row="1"
+               Grid.Column="0"
+               Margin="0,0,15,10"/>
 
                             <TextBlock x:Name="lblMAC"
-                                       Text=""
-                                       Grid.Row="1"
-                                       Grid.Column="1"
-                                       TextWrapping="Wrap"/>
+               Text=""
+               Grid.Row="1"
+               Grid.Column="1"
+               Margin="0,0,0,10"
+               TextWrapping="Wrap"/>
+
+                            <TextBlock x:Name="lblDnsWarning"
+               Grid.Row="2"
+               Grid.Column="0"
+               Grid.ColumnSpan="2"
+               Text=""
+               Foreground="DarkOrange"
+               FontWeight="Bold"
+               TextWrapping="Wrap"
+               Visibility="Collapsed"/>
                         </Grid>
                     </GroupBox>
 
@@ -309,27 +321,35 @@
                             </Paragraph>
 
                             <Paragraph>
-                                Program służy do wyszukiwania adresów IP komputerów w DHCP, kopiowania wyników,
-                    uruchamiania Pomocy zdalnej MSRA oraz wykonywania cyklicznego pingowania.
+                                Program służy do wyszukiwania adresów IP komputerów w DHCP, porównywania wyniku z DNS,
+                    kopiowania adresów IP/MAC, uruchamiania Pomocy zdalnej MSRA oraz wykonywania cyklicznego pingowania.
                             </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
-                                1. Wybór serwera DHCP
+                                1. Uruchomienie programu i wybór serwera DHCP
                             </Paragraph>
 
                             <Paragraph>
-                                Po uruchomieniu aplikacja sprawdza domyślny serwer DHCP.
+                                Po uruchomieniu program automatycznie sprawdza domyślny serwer DHCP:
+                                <Bold>150.150.222.20</Bold> .
                             </Paragraph>
 
                             <List>
                                 <ListItem>
                                     <Paragraph>
-                                        Jeśli serwer odpowiada poprawnie, program automatycznie otwiera główne okno.
+                                        Jeśli domyślny serwer DHCP odpowiada poprawnie, program automatycznie przechodzi do głównego okna.
                                     </Paragraph>
                                 </ListItem>
                                 <ListItem>
                                     <Paragraph>
-                                        Jeśli serwer nie odpowiada, użytkownik może wpisać inny adres IP serwera DHCP.
+                                        Jeśli domyślny serwer DHCP nie odpowiada albo nie można pobrać zakresów DHCP,
+                            użytkownik może wpisać inny adres IP serwera DHCP.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Podany ręcznie adres DHCP jest sprawdzany po kliknięciu przycisku
+                                        <Bold>OK</Bold> .
                                     </Paragraph>
                                 </ListItem>
                             </List>
@@ -340,25 +360,8 @@
 
                             <Paragraph>
                                 <Bold>Pole Hostname:</Bold>
-                                Wpisz nazwę komputera albo adres IP.
+                                W tym polu można wpisać nazwę komputera albo bezpośrednio adres IP.
                             </Paragraph>
-
-                            <Paragraph>
-                                <Bold>Przycisk Szukaj:</Bold>
-                            </Paragraph>
-
-                            <List>
-                                <ListItem>
-                                    <Paragraph>
-                                        Jeśli wpisano hostname, program wyszukuje adres IP i MAC w DHCP.
-                                    </Paragraph>
-                                </ListItem>
-                                <ListItem>
-                                    <Paragraph>
-                                        Jeśli wpisano adres IP, program nie odpytuje DHCP i przyjmuje wpisany adres jako wynik.
-                                    </Paragraph>
-                                </ListItem>
-                            </List>
 
                             <Paragraph>
                                 <Bold>Przycisk Wyszukaj i połącz:</Bold>
@@ -367,39 +370,101 @@
                             <List>
                                 <ListItem>
                                     <Paragraph>
-                                        Jeśli wpisano hostname, program wyszukuje adres IP w DHCP, a następnie uruchamia Pomoc zdalną MSRA.
+                                        Jeśli wpisano
+                                        <Bold>hostname</Bold> , program wyszukuje komputer w DHCP,
+                            pobiera aktywny adres IP i MAC, a następnie uruchamia Pomoc zdalną MSRA.
                                     </Paragraph>
                                 </ListItem>
                                 <ListItem>
                                     <Paragraph>
-                                        Jeśli wpisano adres IP, program od razu uruchamia MSRA bez wyszukiwania w DHCP.
+                                        Jeśli wpisano
+                                        <Bold>adres IP</Bold> , program nie odpytuje DHCP i od razu uruchamia MSRA dla tego adresu.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Naciśnięcie klawisza
+                                        <Bold>Enter</Bold> w polu Hostname działa tak samo jak przycisk
+                                        <Bold>Wyszukaj i połącz</Bold> .
                                     </Paragraph>
                                 </ListItem>
                             </List>
 
                             <Paragraph>
+                                <Bold>Przycisk Szukaj:</Bold>
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano
+                                        <Bold>hostname</Bold> , program wyszukuje adres IP i MAC w DHCP.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano
+                                        <Bold>adres IP</Bold> , program nie wykonuje wyszukiwania w DHCP,
+                            tylko przyjmuje wpisany adres jako aktualny wynik.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Podczas wyszukiwania wyświetlany jest pasek postępu oraz komunikat
+                                        <Bold>Szukam w DHCP...</Bold> .
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                <Bold>Wynik DHCP:</Bold>
+                                W tym miejscu wyświetlany jest znaleziony adres IP oraz adres MAC.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Porównanie DNS z DHCP:</Bold>
+                                Po znalezieniu aktywnego adresu IP w DHCP program sprawdza również adres IP zwracany przez DNS.
+                    Jeśli adres IP w DNS jest inny niż adres IP znaleziony w DHCP, pod wynikiem pojawi się ostrzeżenie:
+                                <Italic>IP w DNS jest inny niż w DHCP</Italic> , razem z adresem IP z DNS.
+                            </Paragraph>
+
+                            <Paragraph>
                                 <Bold>Przycisk Kopiuj IP:</Bold>
-                                Kopiuje znaleziony lub wpisany adres IP do schowka.
+                                Kopiuje znaleziony albo wpisany adres IP do schowka.
                             </Paragraph>
 
                             <Paragraph>
                                 <Bold>Przycisk Kopiuj MAC:</Bold>
-                                Kopiuje znaleziony adres MAC do schowka.
+                                Kopiuje znaleziony adres MAC do schowka. Myślniki w adresie MAC są usuwane.
                             </Paragraph>
 
                             <Paragraph>
                                 <Bold>Przycisk MSRA:</Bold>
-                                Uruchamia Pomoc zdalną Microsoft Remote Assistance dla aktualnego adresu IP.
+                                Uruchamia Pomoc zdalną Microsoft Remote Assistance dla aktualnie wyświetlonego adresu IP.
                             </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli znaleziono więcej niż jeden aktywny adres IP, MSRA nie uruchamia się automatycznie.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli aktualna wartość IP nie jest poprawnym adresem IPv4, program wyświetli ostrzeżenie.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
 
                             <Paragraph>
                                 <Bold>Przycisk Wyczyść:</Bold>
-                                Czyści pole hostname oraz wynik IP/MAC.
+                                Czyści pole Hostname, wynik IP/MAC oraz komunikat ostrzegawczy DNS/DHCP.
                             </Paragraph>
 
                             <Paragraph>
                                 <Bold>Historia:</Bold>
-                                Pokazuje ostatnie wyszukiwania wraz z datą i godziną.
+                                Pokazuje wykonane wyszukiwania wraz z datą i godziną.
+                    Historia może również zawierać informacje o różnicy między DNS i DHCP.
                             </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
@@ -408,7 +473,7 @@
 
                             <Paragraph>
                                 <Bold>Pole Hostname:</Bold>
-                                Wpisz hostname albo adres IP.
+                                Można wpisać nazwę komputera albo bezpośrednio adres IP.
                             </Paragraph>
 
                             <Paragraph>
@@ -418,12 +483,22 @@
                             <List>
                                 <ListItem>
                                     <Paragraph>
-                                        Jeśli wpisano hostname, program najpierw wyszukuje aktywny adres IP w DHCP, a potem rozpoczyna ping.
+                                        Jeśli wpisano
+                                        <Bold>hostname</Bold> , program najpierw wyszukuje aktywny adres IP w DHCP,
+                            a następnie rozpoczyna cykliczne pingowanie.
                                     </Paragraph>
                                 </ListItem>
                                 <ListItem>
                                     <Paragraph>
-                                        Jeśli wpisano adres IP, program rozpoczyna ping bez wyszukiwania w DHCP.
+                                        Jeśli wpisano
+                                        <Bold>adres IP</Bold> , program pomija wyszukiwanie w DHCP
+                            i od razu rozpoczyna pingowanie tego adresu.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Podczas wyszukiwania hosta w DHCP wyświetlany jest pasek postępu oraz komunikat
+                                        <Bold>Szukam hosta w DHCP...</Bold> .
                                     </Paragraph>
                                 </ListItem>
                             </List>
@@ -445,7 +520,7 @@
                                 </ListItem>
                                 <ListItem>
                                     <Paragraph>
-                                        <Bold>Dźwięk przy sukcesie</Bold> - program odtwarza dźwięk, gdy ping zakończy się sukcesem.
+                                        <Bold>Dźwięk przy sukcesie</Bold> - program odtwarza dźwięk po udanym pingu.
                                     </Paragraph>
                                 </ListItem>
                                 <ListItem>
@@ -456,7 +531,7 @@
                             </List>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
-                                4. Wymagania
+                                4. Wymagania techniczne
                             </Paragraph>
 
                             <Paragraph>
@@ -481,6 +556,11 @@
                     Użytkownik musi mieć uprawnienia do odpytywania serwera DHCP.
                             </Paragraph>
 
+                            <Paragraph>
+                                Funkcja MSRA wymaga dostępności narzędzia Microsoft Remote Assistance
+                                <Bold>msra.exe</Bold> na komputerze, z którego uruchamiany jest program.
+                            </Paragraph>
+
                             <Paragraph FontSize="16" FontWeight="Bold">
                                 5. Typowe komunikaty
                             </Paragraph>
@@ -497,7 +577,7 @@
 
                             <Paragraph>
                                 <Bold>Nie znaleziono aktywnego IP</Bold>
-                                Adres istnieje w DHCP, ale ping nie odpowiada.
+                                Adres istnieje w DHCP, ale nie odpowiada na ping.
                             </Paragraph>
 
                             <Paragraph>
@@ -506,9 +586,20 @@
                             </Paragraph>
 
                             <Paragraph>
+                                <Bold>IP w DNS jest inny niż w DHCP</Bold>
+                                DNS zwraca inny adres IP niż aktywny adres znaleziony w DHCP.
+                    W komunikacie wyświetlany jest adres IP zwrócony przez DNS.
+                            </Paragraph>
+
+                            <Paragraph>
                                 <Bold>Znaleziono więcej niż jeden adres IP</Bold>
                                 Dla podanego hostname znaleziono więcej niż jeden aktywny adres IP.
                     W takim przypadku MSRA nie uruchamia się automatycznie.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Aktualna wartość IP nie wygląda jak poprawny adres IPv4</Bold>
+                                Program nie uruchomi MSRA, ponieważ wynik nie jest pojedynczym poprawnym adresem IPv4.
                             </Paragraph>
 
                         </FlowDocument>
