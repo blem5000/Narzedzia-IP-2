@@ -292,7 +292,229 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
+            <TabItem x:Name="tabHelp" Header="Instrukcja">
+                <Grid Margin="10">
+                    <RichTextBox x:Name="rtbManual"
+                     IsReadOnly="True"
+                     VerticalScrollBarVisibility="Auto"
+                     FontFamily="Segoe UI"
+                     FontSize="14"
+                     Padding="10"
+                     BorderThickness="1">
 
+                        <FlowDocument>
+
+                            <Paragraph FontSize="20" FontWeight="Bold">
+                                Narzędzia IP - instrukcja obsługi
+                            </Paragraph>
+
+                            <Paragraph>
+                                Program służy do wyszukiwania adresów IP komputerów w DHCP, kopiowania wyników,
+                    uruchamiania Pomocy zdalnej MSRA oraz wykonywania cyklicznego pingowania.
+                            </Paragraph>
+
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                1. Wybór serwera DHCP
+                            </Paragraph>
+
+                            <Paragraph>
+                                Po uruchomieniu aplikacja sprawdza domyślny serwer DHCP.
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli serwer odpowiada poprawnie, program automatycznie otwiera główne okno.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli serwer nie odpowiada, użytkownik może wpisać inny adres IP serwera DHCP.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                2. Zakładka: Hostname do DHCP
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Pole Hostname:</Bold>
+                                Wpisz nazwę komputera albo adres IP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk Szukaj:</Bold>
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano hostname, program wyszukuje adres IP i MAC w DHCP.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano adres IP, program nie odpytuje DHCP i przyjmuje wpisany adres jako wynik.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                <Bold>Przycisk Wyszukaj i połącz:</Bold>
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano hostname, program wyszukuje adres IP w DHCP, a następnie uruchamia Pomoc zdalną MSRA.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano adres IP, program od razu uruchamia MSRA bez wyszukiwania w DHCP.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                <Bold>Przycisk Kopiuj IP:</Bold>
+                                Kopiuje znaleziony lub wpisany adres IP do schowka.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk Kopiuj MAC:</Bold>
+                                Kopiuje znaleziony adres MAC do schowka.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk MSRA:</Bold>
+                                Uruchamia Pomoc zdalną Microsoft Remote Assistance dla aktualnego adresu IP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk Wyczyść:</Bold>
+                                Czyści pole hostname oraz wynik IP/MAC.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Historia:</Bold>
+                                Pokazuje ostatnie wyszukiwania wraz z datą i godziną.
+                            </Paragraph>
+
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                3. Zakładka: Ping
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Pole Hostname:</Bold>
+                                Wpisz hostname albo adres IP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk Start:</Bold>
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano hostname, program najpierw wyszukuje aktywny adres IP w DHCP, a potem rozpoczyna ping.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Jeśli wpisano adres IP, program rozpoczyna ping bez wyszukiwania w DHCP.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                <Bold>Przycisk Stop:</Bold>
+                                Zatrzymuje cykliczne pingowanie.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Opcje dźwięku:</Bold>
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>Bez dźwięku</Bold> - ping działa bez powiadomień dźwiękowych.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>Dźwięk przy sukcesie</Bold> - program odtwarza dźwięk, gdy ping zakończy się sukcesem.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>Dźwięk przy błędzie</Bold> - program odtwarza dźwięk, gdy ping się nie powiedzie.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                4. Wymagania
+                            </Paragraph>
+
+                            <Paragraph>
+                                Program korzysta z poleceń PowerShell DHCP:
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>Get-DhcpServerv4Scope</Bold>
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>Get-DhcpServerv4Lease</Bold>
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                Na komputerze musi być dostępny moduł DHCP / RSAT.
+                    Użytkownik musi mieć uprawnienia do odpytywania serwera DHCP.
+                            </Paragraph>
+
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                5. Typowe komunikaty
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Brak hostname!</Bold>
+                                Nie wpisano nazwy hosta ani adresu IP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Brak adresu IP w DHCP</Bold>
+                                Nie znaleziono wpisu DHCP dla podanej nazwy.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Nie znaleziono aktywnego IP</Bold>
+                                Adres istnieje w DHCP, ale ping nie odpowiada.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Błąd DHCP</Bold>
+                                Wystąpił problem z odpytaniem serwera DHCP, uprawnieniami albo modułem RSAT.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Znaleziono więcej niż jeden adres IP</Bold>
+                                Dla podanego hostname znaleziono więcej niż jeden aktywny adres IP.
+                    W takim przypadku MSRA nie uruchamia się automatycznie.
+                            </Paragraph>
+
+                        </FlowDocument>
+                    </RichTextBox>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>
