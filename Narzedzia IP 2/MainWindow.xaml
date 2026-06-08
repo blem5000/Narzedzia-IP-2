@@ -288,6 +288,7 @@
                                      Visibility="Collapsed"/>
                     </StackPanel>
 
+                  
                     <!-- Ping output -->
                     <GroupBox Grid.Row="2"
                               Grid.Column="0"
@@ -304,6 +305,96 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
+            <!-- ACL TAB -->
+            <TabItem x:Name="tabACL" Header="ACL">
+                <Grid Margin="10">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+
+                    <!-- SOURCE -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="IP źródłowe:"
+               FontWeight="Bold"
+               VerticalAlignment="Center"/>
+
+                        <TextBlock x:Name="lblDhcpStatus"
+               Grid.Column="1"
+               Margin="10,0,0,0"
+               FontWeight="Bold"
+               VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <TextBox x:Name="txtAclSource"
+                 Grid.Row="1"
+                 Height="30"
+                 Margin="0,5,0,10"/>
+
+                    <!-- DEST LIST -->
+                    <TextBlock Text="Lista IP (ENTER / przecinki):"
+                   Grid.Row="2"
+                   FontWeight="Bold"/>
+
+                    <TextBox x:Name="txtAclDest"
+                 Grid.Row="3"
+                 Height="120"
+                 AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap"
+                 Margin="0,5,0,10"/>
+
+                    <!-- BUTTON -->
+                    <StackPanel Grid.Row="4"
+            Orientation="Horizontal"
+            Margin="0,5,0,0">
+
+                        <Button x:Name="btnGenerateAcl"
+            Content="Generuj ACL"
+            Width="160"
+            Height="35"
+            Margin="0,0,10,0"
+            Click="BtnGenerateAcl_Click"/>
+
+                        <Button x:Name="btnCopyAcl"
+            Content="Kopiuj do schowka"
+            Width="180"
+            Height="35"
+            Click="BtnCopyAcl_Click"/>
+
+                    </StackPanel>
+
+                    <TextBlock Text="Output Cisco:"
+                Grid.Row="5"
+                FontWeight="Bold"/>
+                    
+
+                    <!-- OUTPUT -->
+                    <TextBox x:Name="txtAclOutput"
+                 Grid.Row="6"
+                 Margin="0,10,0,0"
+                 AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"
+                 TextWrapping="NoWrap"
+                 FontFamily="Consolas"
+                 IsReadOnly="True"/>
+
+                </Grid>
+            </TabItem>
+
             <TabItem x:Name="tabHelp" Header="Instrukcja">
                 <Grid Margin="10">
                     <RichTextBox x:Name="rtbManual"
@@ -600,6 +691,79 @@
                             <Paragraph>
                                 <Bold>Aktualna wartość IP nie wygląda jak poprawny adres IPv4</Bold>
                                 Program nie uruchomi MSRA, ponieważ wynik nie jest pojedynczym poprawnym adresem IPv4.
+                            </Paragraph>
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                6. Zakładka: ACL
+                            </Paragraph>
+
+                            <Paragraph>
+                                Zakładka ACL służy do generowania list dostępu (ACL) dla urządzeń Cisco na podstawie podanych adresów IP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Pole IP źródłowe:</Bold>
+                                W tym polu należy wpisać adres IP hosta, dla którego ma zostać wygenerowana reguła ACL.
+                            </Paragraph>
+
+                            <Paragraph>
+                                Program automatycznie sprawdza, czy podany adres posiada rezerwację w DHCP.
+    Wynik wyświetlany jest obok pola:
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>✅ Rezerwacja DHCP OK</Bold> – adres posiada rezerwację.
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        <Bold>❌ Brak rezerwacji DHCP</Bold> – adres nie posiada rezerwacji.
+                                    </Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                Podczas sprawdzania wyświetlany jest status:
+                                <Italic>⏳ Sprawdzanie DHCP...</Italic> .
+                            </Paragraph>
+
+                            <Paragraph>
+                                Brak rezerwacji nie blokuje działania – program wygeneruje ACL mimo ostrzeżenia.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Pole Lista IP:</Bold>
+                                W tym polu należy wpisać adresy docelowe (ENTER lub przecinki).
+                            </Paragraph>
+
+                            <Paragraph>
+                                Program automatycznie:
+                            </Paragraph>
+
+                            <List>
+                                <ListItem>
+                                    <Paragraph>dzieli adresy na odpowiednie podsieci,</Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>łączy je w zakresy (wildcard),</Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>generuje reguły ACL IN oraz OUT,</Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>pomija numery sekwencji podzielne przez 10.</Paragraph>
+                                </ListItem>
+                            </List>
+
+                            <Paragraph>
+                                <Bold>Przycisk Generuj ACL:</Bold>
+                                generuje pełną konfigurację Cisco (conf t, ACL, resequence, zapis).
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk Kopiuj do schowka:</Bold>
+                                kopiuje wygenerowaną konfigurację do schowka.
                             </Paragraph>
 
                         </FlowDocument>

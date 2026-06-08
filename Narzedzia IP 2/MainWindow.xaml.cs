@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Controls;
 using System.Media;
 
 namespace NarzedziaIP
@@ -27,6 +29,9 @@ namespace NarzedziaIP
 
         private readonly DispatcherTimer pingTimer = new DispatcherTimer();
         private readonly List<string> pingIPs = new List<string>();
+
+        private DispatcherTimer _dhcpTypingTimer = new DispatcherTimer();
+
 
         public MainWindow() : this(DefaultDhcpIp)
         {
@@ -52,6 +57,11 @@ namespace NarzedziaIP
 
             txtHostname.KeyDown += txtHostname_KeyDown;
             txtHostname2.KeyDown += txtHostname2_KeyDown;
+
+            // LIVE DHCP CHECK
+            txtAclSource.TextChanged += TxtAclSource_TextChanged;
+            _dhcpTypingTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _dhcpTypingTimer.Tick += DhcpTypingTimer_Tick;
         }
 
         // ============================================================
@@ -682,7 +692,451 @@ foreach ($scope in $scopes) {{
         // ============================================================
         // HELPERS
         // ============================================================
+        private readonly Dictionary<string, bool> _dhcpCache = new Dictionary<string, bool>();
 
+        private void txtAclSource_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            _dhcpTypingTimer.Stop();
+            _dhcpTypingTimer.Start();
+
+            // status "pisanie"
+            lblDhcpStatus.Text = "⌨️ Wpisywanie...";
+            lblDhcpStatus.Foreground = Brushes.Gray;
+        }
+
+        private async void DhcpTypingTimer_Tick(object sender, EventArgs e)
+        {
+            _dhcpTypingTimer.Stop();
+
+            string ip = txtAclSource.Text.Trim();
+
+            if (!IPAddress.TryParse(ip, out _))
+            {
+                lblDhcpStatus.Text = "❌ Niepoprawny IP";
+                lblDhcpStatus.Foreground = Brushes.Red;
+
+                txtAclSource.Background = Brushes.MistyRose;
+                return;
+            }
+
+            // 🔄 checking
+            lblDhcpStatus.Text = "⏳ Sprawdzanie DHCP...";
+            lblDhcpStatus.Foreground = Brushes.Orange;
+
+            bool exists = await DhcpReservationExistsAsync(ip);
+
+            if (exists)
+            {
+                lblDhcpStatus.Text = "✅ Rezerwacja DHCP OK";
+                lblDhcpStatus.Foreground = Brushes.Green;
+
+                txtAclSource.Background = Brushes.LightGreen;
+            }
+            else
+            {
+                lblDhcpStatus.Text = "❌ Brak rezerwacji DHCP";
+                lblDhcpStatus.Foreground = Brushes.Red;
+
+                txtAclSource.Background = Brushes.MistyRose;
+            }
+        }
+        private void TxtAclSource_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            _dhcpTypingTimer.Stop();
+            _dhcpTypingTimer.Start();
+
+            // status podczas wpisywania
+            lblDhcpStatus.Text = "⌨️ Wpisywanie...";
+            lblDhcpStatus.Foreground = System.Windows.Media.Brushes.Gray;
+        }
+
+        private async Task<bool> DhcpReservationExistsAsync(string ip)
+        {
+            // ✅ CACHE HIT
+            if (_dhcpCache.ContainsKey(ip))
+                return _dhcpCache[ip];
+
+            bool result = await Task.Run(() =>
+            {
+                try
+                {
+                    string safeDhcp = EscapePowerShellSingleQuotedString(_dhcpIp);
+                    string safeIp = EscapePowerShellSingleQuotedString(ip);
+
+                    string ps = $@"
+$ErrorActionPreference = 'Stop'
+
+$server = '{safeDhcp}'
+$targetIP = '{safeIp}'
+
+$scopes = Get-DhcpServerv4Scope -ComputerName $server
+
+foreach ($scope in $scopes)
+{{
+    try
+    {{
+        $res = Get-DhcpServerv4Reservation -ComputerName $server -ScopeId $scope.ScopeId -ErrorAction Stop |
+               Where-Object {{ $_.IPAddress.IPAddressToString -eq $targetIP }}
+
+        if ($res)
+        {{
+            Write-Output 'FOUND'
+            return
+        }}
+    }}
+    catch {{}}
+}}
+
+Write-Output 'NOTFOUND'
+";
+
+                    ProcessStartInfo psi = new ProcessStartInfo
+                    {
+                        FileName = "powershell.exe",
+                        Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + EncodePowerShellCommand(ps),
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    };
+
+                    using (Process p = new Process())
+                    {
+                        p.StartInfo = psi;
+                        p.Start();
+
+                        string output = p.StandardOutput.ReadToEnd();
+
+                        // ✅ DEBUG – TU!!!
+                        System.Diagnostics.Debug.WriteLine($"DHCP OUTPUT for {ip}: [{output}]");
+
+                        p.WaitForExit(15000);
+
+                        return output.Trim().Equals("FOUND", StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+
+            // ✅ zapis do cache
+            _dhcpCache[ip] = result;
+
+            return result;
+        }
+
+        uint IPToUint(string ip)
+        {
+            var bytes = System.Net.IPAddress.Parse(ip).GetAddressBytes();
+            Array.Reverse(bytes);
+            return BitConverter.ToUInt32(bytes, 0);
+        }
+
+        string UintToIP(uint ip)
+        {
+            var bytes = BitConverter.GetBytes(ip);
+            Array.Reverse(bytes);
+            return new System.Net.IPAddress(bytes).ToString();
+        }
+
+        List<(string Network, string Wildcard)> MergeToWildcard(List<string> ips)
+        {
+            var ipInts = ips
+                .Select(IPToUint)
+                .OrderBy(x => x)
+                .ToList();
+
+            var result = new List<(string, string)>();
+
+            while (ipInts.Count > 0)
+            {
+
+                var set = new HashSet<uint>(ipInts);
+
+                uint start = ipInts[0];
+                uint size = 1;
+
+                while (true)
+                {
+                    uint nextSize = size * 2;
+
+                    if (start % nextSize != 0)
+                        break;
+
+
+                    var range = Enumerable.Range(0, (int)nextSize)
+                        .Select(i => start + (uint)i);
+
+                    if (range.All(r => set.Contains(r)))
+                        size = nextSize;
+                    else
+                        break;
+                }
+
+                string wildcard;
+
+                switch (size)
+                {
+                    case 1: wildcard = "0.0.0.0"; break;
+                    case 2: wildcard = "0.0.0.1"; break;
+                    case 4: wildcard = "0.0.0.3"; break;
+                    case 8: wildcard = "0.0.0.7"; break;
+                    case 16: wildcard = "0.0.0.15"; break;
+                    case 32: wildcard = "0.0.0.31"; break;
+                    case 64: wildcard = "0.0.0.63"; break;
+                    case 128: wildcard = "0.0.0.127"; break;
+                    default: wildcard = "0.0.0.0"; break;
+                }
+
+                result.Add((UintToIP(start), wildcard));
+
+                ipInts = ipInts
+                    .Where(x => x > start + size - 1)
+                    .ToList();
+            }
+
+            return result;
+        }
+
+
+
+        private async void BtnGenerateAcl_Click(object sender, RoutedEventArgs e)
+        {
+            btnGenerateAcl.IsEnabled = false;
+            try
+            {
+                string sourceIP = txtAclSource.Text.Trim();
+                lblDhcpStatus.Text = "⏳ Sprawdzanie DHCP...";
+                lblDhcpStatus.Foreground = Brushes.Orange;
+
+                Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                // ===== DHCP CHECK SOURCE IP =====
+
+
+                    // ===== FAST DHCP CHECK =====
+                    bool reservationExists = await DhcpReservationExistsAsync(sourceIP);
+
+                    if (reservationExists)
+                    {
+                        lblDhcpStatus.Text = "✅ Rezerwacja DHCP OK";
+                        lblDhcpStatus.Foreground = System.Windows.Media.Brushes.Green;
+                    }
+                    else
+                    {
+                        lblDhcpStatus.Text = "❌ Brak rezerwacji DHCP";
+                        lblDhcpStatus.Foreground = System.Windows.Media.Brushes.Red;
+                    }    
+
+                if (!IPAddress.TryParse(sourceIP, out _))
+                {
+                    MessageBox.Show("Niepoprawny IP źródłowy");
+                    return;
+                }
+
+                var destIPs = txtAclDest.Text
+                    .Split(new[] { ',', '\n', '\r', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(x => IPAddress.TryParse(x, out _))
+                    .Distinct()
+                    .ToList();
+
+                if (destIPs.Count == 0)
+                {
+                    MessageBox.Show("Brak poprawnych IP docelowych");
+                    return;
+                }
+
+                // ===== SUBNETY =====
+                string subnet1Net = "10.202.130.0";
+                string subnet1Mask = "255.255.254.0";
+
+                string subnet2Net = "10.207.156.0";
+                string subnet2Mask = "255.255.254.0";
+
+                // ===== ACL NAZWY =====
+                string inAcl1 = "ACL-BCS2-IN-VLAN130";
+                string outAcl1 = "ACL-BCS2-OUT-VLAN130";
+
+                string inAcl2 = "ACL-BCS-IN";
+                string outAcl2 = "ACL-BCS-OUT";
+
+                int seqIn = 540;
+                int seqOut = 530;
+
+                // ===== SUBNET CHECK =====
+                bool InSubnet(string ip, string net, string mask)
+                {
+                    var ipBytes = IPAddress.Parse(ip).GetAddressBytes();
+                    var netBytes = IPAddress.Parse(net).GetAddressBytes();
+                    var maskBytes = IPAddress.Parse(mask).GetAddressBytes();
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if ((ipBytes[i] & maskBytes[i]) != (netBytes[i] & maskBytes[i]))
+                            return false;
+                    }
+                    return true;
+                }
+
+                // ===== SEQ =====
+                int NextSeq(int seq)
+                {
+                    do { seq++; }
+                    while (seq % 10 == 0);
+                    return seq;
+                }
+
+                // ===== PODZIAŁ =====
+                var group1 = destIPs.Where(ip => InSubnet(ip, subnet1Net, subnet1Mask)).ToList();
+                var group2 = destIPs.Where(ip => InSubnet(ip, subnet2Net, subnet2Mask)).ToList();
+
+                // ✅ GLOBAL CHECK
+                if (group1.Count == 0 && group2.Count == 0)
+                {
+                    txtAclOutput.Text = "Żaden adres nie pasuje do znanych podsieci (10.202 / 10.207).";
+                    return;
+                }
+
+                var sb = new StringBuilder();
+
+                sb.AppendLine("conf t");
+
+                sb.AppendLine("ip access-list resequence ACL-BCS2-IN-VLAN130 10 10");
+                sb.AppendLine("ip access-list resequence ACL-BCS2-OUT-VLAN130 10 10");
+                sb.AppendLine("ip access-list resequence ACL-BCS-IN 10 10");
+                sb.AppendLine("ip access-list resequence ACL-BCS-OUT 10 10");
+                sb.AppendLine();
+
+                // ===== SUBNET 1 =====
+                if (group1.Count > 0)
+                {
+                    var blocks = MergeToWildcard(group1.OrderBy(IPToUint).ToList());
+
+                    sb.AppendLine($"ip access-list extended {inAcl1}");
+
+                    foreach (var b in blocks)
+                    {
+                        seqIn = NextSeq(seqIn);
+
+                        if (b.Wildcard == "0.0.0.0")
+                            sb.AppendLine($"{seqIn} permit ip host {b.Network} host {sourceIP}");
+                        else
+                            sb.AppendLine($"{seqIn} permit ip {b.Network} {b.Wildcard} host {sourceIP}");
+                    }
+
+                    sb.AppendLine($"ip access-list extended {outAcl1}");
+
+                    foreach (var b in blocks)
+                    {
+                        seqOut = NextSeq(seqOut);
+
+                        if (b.Wildcard == "0.0.0.0")
+                            sb.AppendLine($"{seqOut} permit ip host {sourceIP} host {b.Network}");
+                        else
+                            sb.AppendLine($"{seqOut} permit ip host {sourceIP} {b.Network} {b.Wildcard}");
+                    }
+
+                    sb.AppendLine();
+                }
+
+                // ===== SUBNET 2 =====
+                if (group2.Count > 0)
+                {
+                    var blocks = MergeToWildcard(group2.OrderBy(IPToUint).ToList());
+
+                    sb.AppendLine($"ip access-list extended {inAcl2}");
+
+                    foreach (var b in blocks)
+                    {
+                        seqIn = NextSeq(seqIn);
+
+                        if (b.Wildcard == "0.0.0.0")
+                            sb.AppendLine($"{seqIn} permit ip host {b.Network} host {sourceIP}");
+                        else
+                            sb.AppendLine($"{seqIn} permit ip {b.Network} {b.Wildcard} host {sourceIP}");
+                    }
+
+                    sb.AppendLine($"ip access-list extended {outAcl2}");
+
+                    foreach (var b in blocks)
+                    {
+                        seqOut = NextSeq(seqOut);
+
+                        if (b.Wildcard == "0.0.0.0")
+                            sb.AppendLine($"{seqOut} permit ip host {sourceIP} host {b.Network}");
+                        else
+                            sb.AppendLine($"{seqOut} permit ip host {sourceIP} {b.Network} {b.Wildcard}");
+                    }
+
+                    sb.AppendLine();
+                }
+
+                // ===== RESEQUENCE =====
+                sb.AppendLine("ip access-list resequence ACL-BCS2-IN-VLAN130 10 10");
+                sb.AppendLine("ip access-list resequence ACL-BCS2-OUT-VLAN130 10 10");
+                sb.AppendLine("ip access-list resequence ACL-BCS-IN 10 10");
+                sb.AppendLine("ip access-list resequence ACL-BCS-OUT 10 10");
+
+                sb.AppendLine("end");
+                sb.AppendLine("wr");
+
+                txtAclOutput.Text = sb.ToString();
+            }
+
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            finally
+            {
+                btnGenerateAcl.IsEnabled = true;
+            }
+
+        }
+
+        private void BtnCopyAcl_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtAclOutput.Text))
+            {
+                MessageBox.Show("Brak danych do skopiowania!", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+
+            Clipboard.SetText(txtAclOutput.Text);
+
+            // ✅ zapamiętaj poprzedni stan
+            string prevText = lblDhcpStatus.Text;
+            var prevColor = lblDhcpStatus.Foreground;
+
+            // ✅ pokaż info o kopiowaniu
+            lblDhcpStatus.Text = "📋 Skopiowano do schowka";
+            lblDhcpStatus.Foreground = Brushes.Blue;
+
+            // ✅ flash przycisku
+            btnCopyAcl.Content = "✅ Skopiowano";
+            btnCopyAcl.Background = Brushes.LightGreen;
+
+            // ✅ reset po 2s
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000);
+
+                Dispatcher.Invoke(() =>
+                {
+                    // ✅ przywróć poprzedni status
+                    lblDhcpStatus.Text = prevText;
+                    lblDhcpStatus.Foreground = prevColor;
+
+                    // ✅ przywróć przycisk
+                    btnCopyAcl.Content = "Kopiuj do schowka";
+                    btnCopyAcl.ClearValue(System.Windows.Controls.Button.BackgroundProperty);
+                });
+            });
+
+
+        }
         private static string EscapePowerShellSingleQuotedString(string value)
         {
             return value.Replace("'", "''");
