@@ -31,6 +31,10 @@ namespace NarzedziaIP
 
         private readonly List<DhcpLease> _activeLeases = new List<DhcpLease>();
 
+        private TacticalAgent _tacticalAgent;
+        private bool _tacticalChecked;
+        private string _tacticalCheckedHost;
+
         private readonly DispatcherTimer pingTimer = new DispatcherTimer();
         private readonly List<string> pingIPs = new List<string>();
         private readonly Dictionary<string, PingStats> _pingStats = new Dictionary<string, PingStats>();
@@ -246,6 +250,7 @@ namespace NarzedziaIP
 
             _activeLeases.Clear();
             RefreshResultList();
+            ResetTacticalState();
 
             lblDnsWarning.Text = "";
             lblDnsWarning.Visibility = Visibility.Collapsed;
@@ -332,6 +337,8 @@ namespace NarzedziaIP
         {
             string hostname = txtHostname.Text.Trim();
 
+            ResetTacticalState();
+
             if (string.IsNullOrWhiteSpace(hostname))
             {
                 lblIP.Text = "Brak hostname!";
@@ -385,6 +392,7 @@ namespace NarzedziaIP
                     lblMAC.Text = "Brak adresu MAC w DHCP";
                     _activeLeases.Clear();
                     RefreshResultList();
+                    await CheckTacticalAgentAsync(hostname);
                     return;
                 }
 
@@ -424,6 +432,8 @@ namespace NarzedziaIP
 
                     await CheckDnsVsDhcpAsync(hostname, poprawnyIP);
 
+                    await CheckTacticalAgentAsync(hostname);
+
                     btnCopyIP.IsEnabled = true;
                     btnCopyMAC.IsEnabled = true;
                     btnMSRA.IsEnabled = true;
@@ -437,6 +447,7 @@ namespace NarzedziaIP
 
                     _activeLeases.Clear();
                     RefreshResultList();
+                    await CheckTacticalAgentAsync(hostname);
 
                     if (niePoprawnyIP.Count > 0)
                     {
@@ -949,6 +960,63 @@ namespace NarzedziaIP
         }
 
 
+        private void ResetTacticalState()
+        {
+            _tacticalAgent = null;
+            _tacticalChecked = false;
+            _tacticalCheckedHost = null;
+            try
+            {
+                btnTactical.IsEnabled = true;
+                btnTactical.ToolTip = "Otwórz pulpit w TacticalRMM";
+            }
+            catch { }
+        }
+
+        private async Task CheckTacticalAgentAsync(string hostname)
+        {
+            string apiUrl = null;
+            string apiKey = null;
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                apiUrl = s.TacticalApiUrl;
+                apiKey = s.TacticalApiKey;
+            }
+            catch { }
+            if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey))
+                return; // brak konfiguracji - przycisk działa jak dotąd
+
+            TacticalAgent found = null;
+            try
+            {
+                List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15);
+                found = TacticalRmm.FindByHostname(agents, hostname);
+            }
+            catch
+            {
+                return; // offline / błąd API - zostaw domyślny stan
+            }
+
+            _tacticalAgent = found;
+            _tacticalChecked = true;
+            _tacticalCheckedHost = hostname;
+            try
+            {
+                if (found != null)
+                {
+                    btnTactical.IsEnabled = true;
+                    btnTactical.ToolTip = $"TacticalRMM: {found.Hostname} ({found.AgentId})";
+                }
+                else
+                {
+                    btnTactical.IsEnabled = false;
+                    btnTactical.ToolTip = "Nie znaleziono komputera w TacticalRMM";
+                }
+            }
+            catch { }
+        }
+
         private string ResolveTacticalHostname()
         {
             string typed = null;
@@ -1072,7 +1140,17 @@ namespace NarzedziaIP
             txtStatus.Text = "Szukam w TacticalRMM...";
             try
             {
-                TacticalAgent agent = await TacticalRmm.FindAgentAsync(apiUrl, apiKey, host, 15);
+                TacticalAgent agent = null;
+                if (_tacticalChecked && string.Equals(_tacticalCheckedHost, host, StringComparison.OrdinalIgnoreCase))
+                    agent = _tacticalAgent;
+                else
+                {
+                    List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15);
+                    agent = TacticalRmm.FindByHostname(agents, host);
+                    _tacticalAgent = agent;
+                    _tacticalChecked = true;
+                    _tacticalCheckedHost = host;
+                }
                 if (agent == null)
                 {
                     MessageBox.Show(

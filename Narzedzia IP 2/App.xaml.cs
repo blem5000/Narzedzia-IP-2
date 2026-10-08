@@ -8,6 +8,21 @@ namespace NarzedziaIP
         {
             base.OnStartup(e);
 
+            // Przeniesienie ustawień użytkownika ze starszej wersji
+            // (user.config leży w folderze z numerem wersji - bez tego
+            // każda aktualizacja resetowała wszystko do domyślnych).
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                if (!s.SettingsUpgraded)
+                {
+                    s.Upgrade();
+                    s.SettingsUpgraded = true;
+                    s.Save();
+                }
+            }
+            catch { }
+
             bool updated = BootUpdate.TrySilentUpdate();
             if (updated)
             {

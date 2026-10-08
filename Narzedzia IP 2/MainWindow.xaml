@@ -132,6 +132,7 @@
                                 Width="92"
                                 Height="40"
                                 Margin="0,0,10,10"
+                                ToolTip="Otwórz pulpit w TacticalRMM"
                                 Click="btnTactical_Click"/>
 
                     </WrapPanel>
@@ -442,6 +443,8 @@
             </TabItem>
 
             <TabItem x:Name="tabSettings" Header="Ustawienia">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -583,6 +586,7 @@
                         </WrapPanel>
                     </Border>
                 </Grid>
+                </ScrollViewer>
             </TabItem>
 
             <TabItem x:Name="tabHelp" Header="Instrukcja">
@@ -1015,6 +1019,9 @@
                                 sprawdza połączenie i liczy agentów.
                                 Wpisanie samego adresu IP nie wystarczy - potrzebna jest
                                 nazwa hosta (wpisz ją albo wyszukaj komputer).
+                                Przy wyszukiwaniu w DHCP program od razu sprawdza też
+                                TacticalRMM: gdy agenta nie ma, przycisk Tactical jest
+                                wyszarzony z podpowiedzią.
                             </Paragraph>
 
                         </FlowDocument>

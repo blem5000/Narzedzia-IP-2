@@ -160,8 +160,67 @@ namespace NarzedziaIP
 
         public static async Task<TacticalAgent> FindAgentAsync(string apiUrl, string apiKey, string hostname, int timeoutSeconds)
         {
-            List<TacticalAgent> agents = await GetAgentsAsync(apiUrl, apiKey, timeoutSeconds).ConfigureAwait(false);
+            List<TacticalAgent> agents = await GetAgentsCachedAsync(apiUrl, apiKey, timeoutSeconds).ConfigureAwait(false);
             return FindByHostname(agents, hostname);
+        }
+
+        // Cache listy agentów (auto-sprawdzanie przy każdym szukaniu
+        // nie powinno za każdym razem ciągnąć pełnej listy z API).
+        public static readonly TimeSpan AgentsCacheAge = TimeSpan.FromMinutes(5);
+
+        private static readonly object _agentsLock = new object();
+        private static readonly Dictionary<string, Tuple<DateTime, List<TacticalAgent>>> _agentsCache =
+            new Dictionary<string, Tuple<DateTime, List<TacticalAgent>>>(StringComparer.OrdinalIgnoreCase);
+
+        public static bool TryGetCachedAgents(string key, TimeSpan maxAge, out List<TacticalAgent> agents)
+        {
+            agents = null;
+            if (string.IsNullOrWhiteSpace(key))
+                return false;
+            lock (_agentsLock)
+            {
+                Tuple<DateTime, List<TacticalAgent>> entry;
+                if (!_agentsCache.TryGetValue(key.Trim(), out entry))
+                    return false;
+                if (DateTime.UtcNow - entry.Item1 > maxAge)
+                    return false;
+                agents = new List<TacticalAgent>(entry.Item2);
+                return true;
+            }
+        }
+
+        public static void StoreAgents(string key, List<TacticalAgent> agents)
+        {
+            StoreAgents(key, agents, DateTime.UtcNow);
+        }
+
+        public static void StoreAgents(string key, List<TacticalAgent> agents, DateTime utcNow)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return;
+            lock (_agentsLock)
+            {
+                _agentsCache[key.Trim()] = Tuple.Create(utcNow, new List<TacticalAgent>(agents ?? new List<TacticalAgent>()));
+            }
+        }
+
+        public static void ClearAgentsCache()
+        {
+            lock (_agentsLock)
+            {
+                _agentsCache.Clear();
+            }
+        }
+
+        public static async Task<List<TacticalAgent>> GetAgentsCachedAsync(string apiUrl, string apiKey, int timeoutSeconds)
+        {
+            string key = (apiUrl ?? string.Empty) + "\n" + (apiKey ?? string.Empty);
+            List<TacticalAgent> cached;
+            if (TryGetCachedAgents(key, AgentsCacheAge, out cached))
+                return cached;
+            List<TacticalAgent> fresh = await GetAgentsAsync(apiUrl, apiKey, timeoutSeconds).ConfigureAwait(false);
+            StoreAgents(key, fresh);
+            return fresh;
         }
     }
 }

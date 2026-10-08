@@ -216,4 +216,103 @@ namespace NarzedziaIP.Tests
             }
         }
     }
+
+    [TestClass]
+    public class TacticalCacheTests
+    {
+        [TestInitialize]
+        public void Setup()
+        {
+            TacticalRmm.ClearAgentsCache();
+        }
+
+        [TestCleanup]
+        public void Teardown()
+        {
+            TacticalRmm.ClearAgentsCache();
+        }
+
+        [TestMethod]
+        public void MissThenHit()
+        {
+            List<TacticalAgent> agents;
+            Assert.IsFalse(TacticalRmm.TryGetCachedAgents("k", TimeSpan.FromMinutes(5), out agents));
+            TacticalRmm.StoreAgents("k", new List<TacticalAgent>
+            {
+                new TacticalAgent { AgentId = "id-1", Hostname = "PC1" }
+            });
+            Assert.IsTrue(TacticalRmm.TryGetCachedAgents("k", TimeSpan.FromMinutes(5), out agents));
+            Assert.AreEqual(1, agents.Count);
+            Assert.AreEqual("id-1", agents[0].AgentId);
+        }
+
+        [TestMethod]
+        public void StaleMisses()
+        {
+            TacticalRmm.StoreAgents("k", new List<TacticalAgent>(), DateTime.UtcNow.AddMinutes(-6));
+            List<TacticalAgent> agents;
+            Assert.IsFalse(TacticalRmm.TryGetCachedAgents("k", TimeSpan.FromMinutes(5), out agents));
+        }
+
+        [TestMethod]
+        public void KeyCaseInsensitiveAndBlankSafe()
+        {
+            TacticalRmm.StoreAgents("Key", new List<TacticalAgent>());
+            List<TacticalAgent> agents;
+            Assert.IsTrue(TacticalRmm.TryGetCachedAgents("key", TimeSpan.FromMinutes(5), out agents));
+            Assert.IsFalse(TacticalRmm.TryGetCachedAgents(" ", TimeSpan.FromMinutes(5), out agents));
+            Assert.IsFalse(TacticalRmm.TryGetCachedAgents(null, TimeSpan.FromMinutes(5), out agents));
+        }
+
+        [TestMethod]
+        public async Task SecondFetchUsesCacheWithoutHttp()
+        {
+            int hits = 0;
+            TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var server = Task.Run(() =>
+            {
+                try
+                {
+                    using (TcpClient client = listener.AcceptTcpClient())
+                    using (NetworkStream stream = client.GetStream())
+                    using (StreamReader reader = new StreamReader(stream, Encoding.ASCII))
+                    {
+                        System.Threading.Interlocked.Increment(ref hits);
+                        string line;
+                        do { line = reader.ReadLine(); } while (!string.IsNullOrEmpty(line));
+                        string body = "[{\"agent_id\":\"a\",\"hostname\":\"H\"}]";
+                        byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
+                        string header = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                            + "Content-Length: " + bodyBytes.Length + "\r\nConnection: close\r\n\r\n";
+                        byte[] headerBytes = Encoding.ASCII.GetBytes(header);
+                        stream.Write(headerBytes, 0, headerBytes.Length);
+                        stream.Write(bodyBytes, 0, bodyBytes.Length);
+                    }
+                }
+                catch { }
+                finally
+                {
+                    try { listener.Stop(); }
+                    catch { }
+                }
+            });
+            try
+            {
+                string api = "http://127.0.0.1:" + port;
+                var first = await TacticalRmm.GetAgentsCachedAsync(api, "K", 10);
+                var second = await TacticalRmm.GetAgentsCachedAsync(api, "K", 10);
+                Assert.AreEqual(1, first.Count);
+                Assert.AreEqual(1, second.Count);
+                await server;
+                Assert.AreEqual(1, hits, "drugie wywołanie miało nie uderzać w HTTP");
+            }
+            finally
+            {
+                try { listener.Stop(); }
+                catch { }
+            }
+        }
+    }
 }
