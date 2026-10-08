@@ -517,21 +517,25 @@ namespace NarzedziaIP
         // Start the GUI updater (windowed exe: no console ever). Caller quits.
         public static void LaunchGuiUpdater(string updaterExe, string zipPath, string targetDir, string exeName, int pid, int pidStart, string tag)
         {
-            string args = "--zip " + Quote(zipPath)
-                + " --target " + Quote(targetDir)
-                + " --exe " + Quote(exeName)
-                + " --pid " + pid
-                + " --pid-start " + pidStart
-                + " --tag " + Quote(tag);
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = updaterExe,
-                Arguments = args,
+                Arguments = BuildUpdaterArguments(zipPath, targetDir, exeName, pid, pidStart, tag),
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WorkingDirectory = Path.GetTempPath()
             };
             Process.Start(psi);
+        }
+
+        public static string BuildUpdaterArguments(string zipPath, string targetDir, string exeName, int pid, int pidStart, string tag)
+        {
+            return "--zip " + Quote(zipPath)
+                + " --target " + Quote(targetDir)
+                + " --exe " + Quote(exeName)
+                + " --pid " + pid
+                + " --pid-start " + pidStart
+                + " --tag " + Quote(tag);
         }
 
         // Hidden .bat fallback: waits for our PID, extracts via Expand-Archive,
@@ -597,9 +601,22 @@ namespace NarzedziaIP
             Process.Start(psi);
         }
 
-        private static string Quote(string value)
+        public static string Quote(string value)
         {
-            return "\"" + (value ?? string.Empty).Replace("\"", "\"\"") + "\"";
+            // Cudzysłowy są nielegalne w ścieżkach Windows - wytnij je,
+            // zamiast produkować nieparsowalne argumenty.
+            string v = (value ?? string.Empty).Replace("\"", string.Empty);
+            // CommandLineToArgvW: parzysta liczba końcowych backslashy +
+            // cudzysłów = dosłowne backslashe, nieparzysta = ostatni backslash
+            // escapuje cudzysłów zamykający i parsowanie się rozjeżdża
+            // (typowe dla katalogów kończących się "\", np. AppDir() albo
+            // udziały UNC ze spacjami: "\\srv\udział z dir\").
+            int trailing = 0;
+            for (int i = v.Length - 1; i >= 0 && v[i] == '\\'; i--)
+                trailing++;
+            if (trailing % 2 == 1)
+                v += "\\";
+            return "\"" + v + "\"";
         }
     }
 }
