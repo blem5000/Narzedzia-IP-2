@@ -176,7 +176,14 @@ namespace NarzedziaIP
             }
         }
 
-        public static async Task<ReleaseInfo> FetchLatestReleaseAsync(int timeoutSeconds)
+        public static Task<ReleaseInfo> FetchLatestReleaseAsync(int timeoutSeconds)
+        {
+            return FetchLatestReleaseAsync(timeoutSeconds, ApiLatest);
+        }
+
+        // Overload z jawnym URL - produkcja woła ApiLatest, testy stawiają
+        // lokalny stub HTTP i nie zależą od sieci ani GitHuba.
+        public static async Task<ReleaseInfo> FetchLatestReleaseAsync(int timeoutSeconds, string apiUrl)
         {
             EnsureTls12();
             using (HttpClient client = new HttpClient())
@@ -188,7 +195,7 @@ namespace NarzedziaIP
                 string json;
                 try
                 {
-                    json = await client.GetStringAsync(ApiLatest).ConfigureAwait(false);
+                    json = await client.GetStringAsync(apiUrl).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

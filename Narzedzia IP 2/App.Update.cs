@@ -17,6 +17,13 @@ namespace NarzedziaIP
     // method that resumes on the UI context deadlocks the app (hang with no
     // window). The download dialog itself runs on the UI thread via
     // ShowDialog(), which pumps messages and is safe.
+    public enum BootAction
+    {
+        StartApp,
+        ShowDownloadDialog,
+        DeferToMainDialog
+    }
+
     public static class BootUpdate
     {
         public static bool SessionChecked { get; private set; }
@@ -25,6 +32,26 @@ namespace NarzedziaIP
         public static void ClearPending()
         {
             Pending = null;
+        }
+
+        // Czysta decyzja bez UI i bez sieci - w 100% testowalna.
+        // info == null oznacza: brak odpowiedzi API / błąd / brak nowszej wersji.
+        public static BootAction EvaluateBootAction(bool auto, ReleaseInfo info, string currentVersion, string skippedTag, bool updaterPresent)
+        {
+            if (!auto)
+                return BootAction.StartApp;
+            if (info == null)
+                return BootAction.StartApp;
+            bool newer;
+            try { newer = Updater.IsNewer(info.Tag, currentVersion); }
+            catch { newer = false; }
+            if (!newer)
+                return BootAction.StartApp;
+            if (string.Equals(info.Tag, skippedTag, StringComparison.OrdinalIgnoreCase))
+                return BootAction.StartApp; // user skipped this version
+            if (!updaterPresent)
+                return BootAction.DeferToMainDialog;
+            return BootAction.ShowDownloadDialog;
         }
 
         public static bool TrySilentUpdate()
@@ -41,42 +68,42 @@ namespace NarzedziaIP
             }
             catch
             {
-                return false;
+                auto = false;
+                skipped = null;
             }
-            if (!auto)
-                return false;
 
-            ReleaseInfo info;
+            ReleaseInfo info = null;
             try
             {
                 info = Task.Run(() => FetchPendingUpdateAsync()).GetAwaiter().GetResult();
             }
             catch
             {
-                return false;
+                info = null;
             }
-            if (info == null)
-                return false;
-            if (string.Equals(info.Tag, skipped, StringComparison.OrdinalIgnoreCase))
-                return false; // user skipped this version
 
-            string bundled = Path.Combine(Updater.AppDir(), Updater.UpdaterExeName);
-            if (!File.Exists(bundled))
+            bool updaterPresent = File.Exists(Path.Combine(Updater.AppDir(), Updater.UpdaterExeName));
+
+            switch (EvaluateBootAction(auto, info, Updater.CurrentVersion(), skipped, updaterPresent))
             {
-                // Old install without the updater program: leave it to the
-                // post-startup dialog flow (which falls back to .bat).
-                Pending = info;
-                return false;
+                case BootAction.ShowDownloadDialog:
+                    var dlg = new BootUpdateWindow(info);
+                    bool? result = dlg.ShowDialog();
+                    if (result == true)
+                        return true; // installer launched
+                    if (dlg.DownloadFailed)
+                        Pending = info; // let the user retry from the main window
+                    return false;
+
+                case BootAction.DeferToMainDialog:
+                    // Old install without the updater program: leave it to the
+                    // post-startup dialog flow (which falls back to .bat).
+                    Pending = info;
+                    return false;
+
+                default:
+                    return false;
             }
-
-            var dlg = new BootUpdateWindow(info);
-            bool? result = dlg.ShowDialog();
-            if (result == true)
-                return true; // installer launched
-
-            if (dlg.DownloadFailed)
-                Pending = info; // let the user retry from the main window
-            return false;
         }
 
         // Pure network + compare. No UI touches, ConfigureAwait(false), so it

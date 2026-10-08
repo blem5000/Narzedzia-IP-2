@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AclWildcardTests.cs" />
+    <Compile Include="UpdateFlowTests.cs" />
     <Compile Include="UpdaterQuotingTests.cs" />
     <Compile Include="UpdaterTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
