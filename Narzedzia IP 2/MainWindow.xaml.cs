@@ -1121,6 +1121,23 @@ namespace NarzedziaIP
             dashUrl = merged.DashboardUrl;
         }
 
+        private void txtTacticalApiKey_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            UpdateApiKeyTooltip();
+        }
+
+        private void UpdateApiKeyTooltip()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(txtTacticalApiKey.Password))
+                    txtTacticalApiKey.ToolTip = "Klucz API generujesz w TacticalRMM: Ustawienia → Global Settings → API Keys → Add. Wybierz użytkownika (uprawnienia klucza = jego rola).";
+                else
+                    txtTacticalApiKey.ToolTip = "Klucz API TacticalRMM (jak hasło - nie pokazuj nikomu).";
+            }
+            catch { }
+        }
+
         private void LoadTacticalSettings()
         {
             try
@@ -1129,6 +1146,7 @@ namespace NarzedziaIP
                 txtTacticalApiUrl.Text = apiUrl ?? string.Empty;
                 txtTacticalApiKey.Password = apiKey ?? string.Empty;
                 txtTacticalDashboardUrl.Text = dashUrl ?? string.Empty;
+                UpdateApiKeyTooltip();
                 CompanyConfig.TacticalConfig reg = null;
                 try { reg = CompanyConfig.ReadTactical(); }
                 catch { reg = null; }

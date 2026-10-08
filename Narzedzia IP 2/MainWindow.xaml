@@ -508,7 +508,7 @@
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                             <TextBlock Text="Klucz API:" Width="90" VerticalAlignment="Center"/>
-                            <PasswordBox x:Name="txtTacticalApiKey" Width="300" Height="28" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+                            <PasswordBox x:Name="txtTacticalApiKey" Width="300" Height="28" VerticalContentAlignment="Center" Margin="0,0,10,0" PasswordChanged="txtTacticalApiKey_PasswordChanged"/>
                             <Button x:Name="btnTestTactical" Content="Testuj" Width="100" Height="28" Click="btnTestTactical_Click"/>
                             <TextBlock x:Name="lblTacticalStatus" VerticalAlignment="Center" Margin="10,0,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
@@ -568,37 +568,40 @@
                             BorderThickness="1"
                             BorderBrush="#CCCCCC"
                             Padding="10">
-                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Name="lblAppVersion"
-                                       Text="Wersja: ..."
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,15,0"/>
-                            <CheckBox x:Name="chkUpdateAuto"
-                                      Content="Automatyczne sprawdzanie aktualizacji"
-                                      VerticalAlignment="Center"
-                                      Margin="0,0,15,0"
-                                      Checked="chkUpdateAuto_Checked"
-                                      Unchecked="chkUpdateAuto_Unchecked"/>
-                            <TextBlock Text="MAC:"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,5,0"/>
-                            <ComboBox x:Name="cmbMacFormat"
-                                      Width="210"
-                                      Height="32"
-                                      VerticalContentAlignment="Center"
-                                      Margin="0,0,15,0"
-                                      SelectionChanged="cmbMacFormat_SelectionChanged">
-                                <ComboBoxItem Content="Zwykły (bez separatorów)"/>
-                                <ComboBoxItem Content="Dwukropki AA:BB:CC:DD:EE:FF"/>
-                                <ComboBoxItem Content="Cisco aabb.ccdd.eeff"/>
-                            </ComboBox>
-                            <Button x:Name="btnCheckUpdate"
-                                    Content="Sprawdź aktualizacje"
-                                    Width="170"
-                                    Height="32"
-                                    Click="btnCheckUpdate_Click"/>
-                        </WrapPanel>
+                        <StackPanel Orientation="Vertical">
+                            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8">
+                                <TextBlock x:Name="lblAppVersion"
+                                           Text="Wersja: ..."
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,15,0"/>
+                                <CheckBox x:Name="chkUpdateAuto"
+                                          Content="Automatyczne sprawdzanie aktualizacji"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,15,0"
+                                          Checked="chkUpdateAuto_Checked"
+                                          Unchecked="chkUpdateAuto_Unchecked"/>
+                                <Button x:Name="btnCheckUpdate"
+                                        Content="Sprawdź aktualizacje"
+                                        Width="170"
+                                        Height="32"
+                                        Click="btnCheckUpdate_Click"/>
+                            </WrapPanel>
+                            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Format MAC:"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,5,0"/>
+                                <ComboBox x:Name="cmbMacFormat"
+                                          Width="210"
+                                          Height="32"
+                                          VerticalContentAlignment="Center"
+                                          SelectionChanged="cmbMacFormat_SelectionChanged">
+                                    <ComboBoxItem Content="Zwykły (bez separatorów)"/>
+                                    <ComboBoxItem Content="Dwukropki AA:BB:CC:DD:EE:FF"/>
+                                    <ComboBoxItem Content="Cisco aabb.ccdd.eeff"/>
+                                </ComboBox>
+                            </WrapPanel>
+                        </StackPanel>
                     </Border>
                 </Grid>
                 </ScrollViewer>
