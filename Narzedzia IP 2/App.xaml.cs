@@ -13,8 +13,9 @@ namespace NarzedziaIP
 
             // Silent self-update check (like cisco-acl-helper boot check).
             // When a newer GitHub release is downloaded, the GUI updater
-            // takes over - just exit here.
-            bool updated = BootUpdate.TrySilentUpdateAsync().GetAwaiter().GetResult();
+            // takes over - just exit here. Sync wrapper: network runs on a
+            // threadpool thread, dialog (if any) on the UI thread.
+            bool updated = BootUpdate.TrySilentUpdate();
             if (updated)
             {
                 Shutdown();

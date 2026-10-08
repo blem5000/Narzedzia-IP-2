@@ -10,6 +10,13 @@ namespace NarzedziaIP
     // exists (and was not skipped), download it with a small cancellable
     // progress window and hand over to the GUI updater. Returns true when the
     // updater was launched - the caller must shut down immediately.
+    //
+    // IMPORTANT: TrySilentUpdate() is called on the UI thread and blocks it,
+    // so the network check runs on a threadpool thread with
+    // ConfigureAwait(false) all the way. Blocking the UI thread on an async
+    // method that resumes on the UI context deadlocks the app (hang with no
+    // window). The download dialog itself runs on the UI thread via
+    // ShowDialog(), which pumps messages and is safe.
     public static class BootUpdate
     {
         public static bool SessionChecked { get; private set; }
@@ -20,7 +27,7 @@ namespace NarzedziaIP
             Pending = null;
         }
 
-        public static async Task<bool> TrySilentUpdateAsync()
+        public static bool TrySilentUpdate()
         {
             SessionChecked = true;
             Pending = null;
@@ -42,17 +49,13 @@ namespace NarzedziaIP
             ReleaseInfo info;
             try
             {
-                info = await Updater.FetchLatestReleaseAsync(10).ConfigureAwait(true);
+                info = Task.Run(() => FetchPendingUpdateAsync()).GetAwaiter().GetResult();
             }
             catch
             {
-                return false; // offline / API error -> start normally
+                return false;
             }
-
-            bool newer;
-            try { newer = Updater.IsNewer(info.Tag, null); }
-            catch { newer = false; }
-            if (!newer)
+            if (info == null)
                 return false;
             if (string.Equals(info.Tag, skipped, StringComparison.OrdinalIgnoreCase))
                 return false; // user skipped this version
@@ -74,6 +77,26 @@ namespace NarzedziaIP
             if (dlg.DownloadFailed)
                 Pending = info; // let the user retry from the main window
             return false;
+        }
+
+        // Pure network + compare. No UI touches, ConfigureAwait(false), so it
+        // is safe to block on from the UI thread via Task.Run(...).GetResult().
+        private static async Task<ReleaseInfo> FetchPendingUpdateAsync()
+        {
+            ReleaseInfo info;
+            try
+            {
+                info = await Updater.FetchLatestReleaseAsync(10).ConfigureAwait(false);
+            }
+            catch
+            {
+                return null; // offline / API error -> start normally
+            }
+
+            bool newer;
+            try { newer = Updater.IsNewer(info.Tag, null); }
+            catch { newer = false; }
+            return newer ? info : null;
         }
     }
 
