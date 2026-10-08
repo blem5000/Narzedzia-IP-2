@@ -607,7 +607,9 @@
 
                             <Paragraph>
                                 Program służy do wyszukiwania adresów IP komputerów w DHCP, porównywania wyniku z DNS,
-                    kopiowania adresów IP/MAC, uruchamiania Pomocy zdalnej MSRA oraz wykonywania cyklicznego pingowania.
+                    kopiowania adresów IP/MAC, zdalnego łączenia się z komputerami
+                    (MSRA, RDP, TacticalRMM), generowania list ACL dla Cisco
+                    oraz wykonywania cyklicznego pingowania.
                             </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
@@ -696,6 +698,9 @@
                             <Paragraph>
                                 <Bold>Wynik DHCP:</Bold>
                                 W tym miejscu wyświetlany jest znaleziony adres IP oraz adres MAC.
+                                Poniżej jest lista wszystkich aktywnych wyników do wyboru -
+                                kopiowanie, MSRA, RDP i Tactical używają wybranego adresu
+                                (przy jednym wyniku wybierany jest automatycznie).
                             </Paragraph>
 
                             <Paragraph>
@@ -733,7 +738,8 @@
                                 <ListItem>
                                     <Paragraph>
                                         Jeśli znaleziono więcej niż jeden aktywny adres IP, wybierz właściwy
-                                        z listy wyników - MSRA uruchomi się dla wybranego adresu.
+                                        z listy wyników - MSRA, RDP i kopiowanie zadziałają dla wybranego adresu.
+                                        Bez wyboru program poprosi o wskazanie adresu zamiast zgadywać.
                                     </Paragraph>
                                 </ListItem>
                                 <ListItem>
@@ -786,6 +792,12 @@
                                     <Paragraph>
                                         Podczas wyszukiwania hosta w DHCP wyświetlany jest pasek postępu oraz komunikat
                                         <Bold>Szukam hosta w DHCP...</Bold> .
+                                    </Paragraph>
+                                </ListItem>
+                                <ListItem>
+                                    <Paragraph>
+                                        Gdy znaleziono więcej adresów, pingowanie rotuje po wszystkich
+                                        po kolei (w logu widać, który adres odpowiada).
                                     </Paragraph>
                                 </ListItem>
                             </List>
@@ -849,6 +861,17 @@
                             <Paragraph>
                                 Funkcja MSRA wymaga dostępności narzędzia Microsoft Remote Assistance
                                 <Bold>msra.exe</Bold> na komputerze, z którego uruchamiany jest program.
+                                Gdy go nie ma, program zaproponuje połączenie przez RDP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                Funkcja RDP nie wymaga niczego dodatkowego na Twoim komputerze,
+                                ale komputer docelowy musi mieć włączony pulpit zdalny.
+                            </Paragraph>
+
+                            <Paragraph>
+                                Funkcja Tactical wymaga agenta TacticalRMM na komputerze docelowym
+                                oraz klucza API (patrz rozdział 8).
                             </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
@@ -884,7 +907,7 @@
                             <Paragraph>
                                 <Bold>Znaleziono więcej niż jeden adres IP</Bold>
                                 Dla podanego hostname znaleziono więcej niż jeden aktywny adres IP.
-                    W takim przypadku MSRA nie uruchamia się automatycznie.
+                    Wybierz jeden z listy wyników - dopiero wtedy MSRA, RDP i kopiowanie zadziałają.
                             </Paragraph>
 
                             <Paragraph>
@@ -1043,6 +1066,54 @@
                                 na bok (<Italic>*.old</Italic>), więc druga osoba
                                 może w tym czasie pracować na starej wersji,
                                 a resztki sprzątane są przy starcie.
+                            </Paragraph>
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                9. Zakładka: Ustawienia
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Serwer DHCP:</Bold>
+                                adres używany do wszystkich wyszukiwań.
+                                Przycisk <Bold>Sprawdź</Bold> weryfikuje połączenie
+                                i po sukcesie zapamiętuje adres na stałe
+                                (również między uruchomieniami).
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>TacticalRMM:</Bold>
+                                adres API, klucz API oraz adres dashboardu
+                                (klucz możesz sprawdzić przyciskiem
+                                <Bold>Testuj</Bold> ). Pola mogą przychodzić
+                                z rejestru firmowego - wtedy edycja w programie
+                                nie ma znaczenia, bo rejestr wygrywa.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>ACL:</Bold>
+                                podsieci z maskami, nazwy list IN/OUT
+                                oraz startowe numery sekwencji używane
+                                przy generowaniu. Bledne wartości blokują
+                                generowanie z komunikatem.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>MAC:</Bold>
+                                format kopiowanego adresu MAC -
+                                zwykły, z dwukropkami albo ciscowy.
+                            </Paragraph>
+
+                            <Paragraph>
+                                Na dole zakładki jest panel aktualizacji
+                                (wersja, automatyczne sprawdzanie, ręczne
+                                <Bold>Sprawdź aktualizacje</Bold> ).
+                            </Paragraph>
+
+                            <Paragraph>
+                                Okno programu jest skalowalne, a jego rozmiar
+                                zapamiętuje się przy zamknięciu.
+                                Ustawienia użytkownika (w tym powyższe)
+                                przenoszą się automatycznie na nowe wersje
+                                programu po aktualizacji.
                             </Paragraph>
 
                         </FlowDocument>
