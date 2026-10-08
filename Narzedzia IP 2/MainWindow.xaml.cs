@@ -75,6 +75,7 @@ namespace NarzedziaIP
             btnCopyMAC.IsEnabled = false;
             btnMSRA.IsEnabled = false;
             btnRDP.IsEnabled = false;
+            btnTactical.IsEnabled = false;
             btnStopPing.IsEnabled = false;
 
             txtHostname.KeyDown += txtHostname_KeyDown;
@@ -253,6 +254,7 @@ namespace NarzedziaIP
             btnCopyMAC.IsEnabled = false;
             btnMSRA.IsEnabled = false;
             btnRDP.IsEnabled = false;
+            btnTactical.IsEnabled = false;
 
             txtHostname.Focus();
         }
@@ -349,6 +351,7 @@ namespace NarzedziaIP
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = true;
                 btnRDP.IsEnabled = true;
+                btnTactical.IsEnabled = true;
 
                 txtHistoria.AppendText(
                     $"{hostname}\tWpisano IP bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -425,6 +428,7 @@ namespace NarzedziaIP
                     btnCopyMAC.IsEnabled = true;
                     btnMSRA.IsEnabled = true;
                     btnRDP.IsEnabled = true;
+                    btnTactical.IsEnabled = true;
                 }
                 else
                 {
@@ -491,6 +495,7 @@ namespace NarzedziaIP
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = true;
                 btnRDP.IsEnabled = true;
+                btnTactical.IsEnabled = true;
 
                 txtHistoria.AppendText(
                     $"{input}\tPołączenie MSRA bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -954,6 +959,176 @@ namespace NarzedziaIP
             }
         }
 
+
+        private string ResolveTacticalHostname()
+        {
+            string typed = null;
+            try { typed = txtHostname.Text.Trim(); }
+            catch { typed = null; }
+
+            if (string.IsNullOrWhiteSpace(typed))
+                return null;
+
+            if (!IsIPv4Address(typed))
+                return typed;
+
+            try
+            {
+                foreach (DhcpLease lease in _activeLeases)
+                {
+                    if (string.Equals(lease.IPAddress, typed, StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(lease.HostName))
+                        return lease.HostName.Trim();
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private void LoadTacticalSettings()
+        {
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                txtTacticalApiUrl.Text = s.TacticalApiUrl;
+                txtTacticalApiKey.Password = s.TacticalApiKey;
+                txtTacticalDashboardUrl.Text = s.TacticalDashboardUrl;
+            }
+            catch { }
+        }
+
+        private void SaveTacticalSettings()
+        {
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                s.TacticalApiUrl = txtTacticalApiUrl.Text.Trim();
+                s.TacticalApiKey = txtTacticalApiKey.Password;
+                s.TacticalDashboardUrl = txtTacticalDashboardUrl.Text.Trim();
+                s.Save();
+            }
+            catch { }
+        }
+
+        private void SetTacticalStatus(string text, Brush brush)
+        {
+            try
+            {
+                lblTacticalStatus.Text = text ?? string.Empty;
+                lblTacticalStatus.Foreground = brush;
+            }
+            catch { }
+        }
+
+        private async void btnTestTactical_Click(object sender, RoutedEventArgs e)
+        {
+            SaveTacticalSettings();
+            btnTestTactical.IsEnabled = false;
+            SetTacticalStatus("Sprawdzanie...", Brushes.Gray);
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                var agents = await TacticalRmm.GetAgentsAsync(s.TacticalApiUrl, s.TacticalApiKey, 15);
+                SetTacticalStatus($"OK: {agents.Count} agentów.", Brushes.Green);
+            }
+            catch (Exception ex)
+            {
+                SetTacticalStatus("Błąd: " + ex.Message, Brushes.Red);
+            }
+            finally
+            {
+                try { btnTestTactical.IsEnabled = true; }
+                catch { }
+            }
+        }
+
+        private async void btnTactical_Click(object sender, RoutedEventArgs e)
+        {
+            string host = ResolveTacticalHostname();
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                MessageBox.Show(
+                    "Wpisz hostname albo wyszukaj komputer (potrzebna nazwa hosta, nie sam adres IP).",
+                    "TacticalRMM",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            string apiUrl = null;
+            string apiKey = null;
+            string dashUrl = null;
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                apiUrl = s.TacticalApiUrl;
+                apiKey = s.TacticalApiKey;
+                dashUrl = s.TacticalDashboardUrl;
+            }
+            catch { }
+
+            if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(dashUrl))
+            {
+                MessageBox.Show(
+                    "Uzupełnij adres API, klucz API i adres dashboardu w zakładce Ustawienia.",
+                    "TacticalRMM",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+            SaveTacticalSettings();
+
+            btnTactical.IsEnabled = false;
+            txtStatus.Text = "Szukam w TacticalRMM...";
+            try
+            {
+                TacticalAgent agent = await TacticalRmm.FindAgentAsync(apiUrl, apiKey, host, 15);
+                if (agent == null)
+                {
+                    MessageBox.Show(
+                        $"Nie znaleziono agenta '{host}' w TacticalRMM.\n\nSprawdź nazwę albo czy komputer ma zainstalowanego agenta.",
+                        "TacticalRMM",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                string url = TacticalRmm.TakeControlUrl(dashUrl, agent.AgentId);
+                if (url == null)
+                {
+                    MessageBox.Show(
+                        "Niepoprawny adres dashboardu w Ustawieniach.",
+                        "TacticalRMM",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                try
+                {
+                    txtHistoria.AppendText($"{host}\tTacticalRMM: {agent.AgentId}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}");
+                    txtHistoria.ScrollToEnd();
+                }
+                catch { }
+
+                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Błąd TacticalRMM:\n\n" + ex.Message,
+                    "TacticalRMM",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                txtStatus.Text = "";
+                try { btnTactical.IsEnabled = true; }
+                catch { }
+            }
+        }
 
         // ============================================================
         // HELPERS
@@ -1476,6 +1651,7 @@ Write-Output 'NOTFOUND'
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = false;
             btnRDP.IsEnabled = false;
+            btnTactical.IsEnabled = false;
                 btnSearchConnect.IsEnabled = true;
             }
         }

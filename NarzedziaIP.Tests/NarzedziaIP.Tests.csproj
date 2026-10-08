@@ -47,6 +47,7 @@
     <Compile Include="AclRemarkTests.cs" />
     <Compile Include="ClipboardHelperTests.cs" />
     <Compile Include="PingMacAclTests.cs" />
+    <Compile Include="TacticalTests.cs" />
     <Compile Include="RemoteConnectTests.cs" />
     <Compile Include="DhcpClientTests.cs" />
     <Compile Include="AclWildcardTests.cs" />

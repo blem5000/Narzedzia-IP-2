@@ -266,5 +266,50 @@ namespace Narzedzia_IP_2.Properties
                 this["MainHeight"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TacticalApiUrl
+        {
+            get
+            {
+                return ((string)(this["TacticalApiUrl"]));
+            }
+            set
+            {
+                this["TacticalApiUrl"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TacticalApiKey
+        {
+            get
+            {
+                return ((string)(this["TacticalApiKey"]));
+            }
+            set
+            {
+                this["TacticalApiKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TacticalDashboardUrl
+        {
+            get
+            {
+                return ((string)(this["TacticalDashboardUrl"]));
+            }
+            set
+            {
+                this["TacticalDashboardUrl"] = value;
+            }
+        }
     }
 }

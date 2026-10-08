@@ -93,6 +93,7 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="PingHelper.cs" />
+    <Compile Include="TacticalRmm.cs" />
     <Compile Include="RemoteConnect.cs" />
     <Compile Include="MainWindow.Update.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

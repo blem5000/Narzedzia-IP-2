@@ -127,6 +127,13 @@
                                 Margin="0,0,10,10"
                                 Click="btnRDP_Click"/>
 
+                        <Button x:Name="btnTactical"
+                                Content="Tactical"
+                                Width="92"
+                                Height="40"
+                                Margin="0,0,10,10"
+                                Click="btnTactical_Click"/>
+
                     </WrapPanel>
 
                     <!-- Result box -->
@@ -441,6 +448,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -469,12 +478,34 @@
                                    TextWrapping="Wrap"/>
                     </StackPanel>
 
-                    <TextBlock Text="ACL - podsieci, nazwy i numeracja:"
+                    <TextBlock Text="TacticalRMM (pulpit bez zabierania sesji):"
                                FontWeight="Bold"
                                Grid.Row="2"
                                Margin="0,15,0,5"/>
 
-                    <Grid Grid.Row="3" Margin="0,0,0,0">
+                    <StackPanel Grid.Row="3" Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                            <TextBlock Text="API URL:" Width="90" VerticalAlignment="Center"/>
+                            <TextBox x:Name="txtTacticalApiUrl" Width="300" Height="28" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                            <TextBlock Text="Klucz API:" Width="90" VerticalAlignment="Center"/>
+                            <PasswordBox x:Name="txtTacticalApiKey" Width="300" Height="28" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+                            <Button x:Name="btnTestTactical" Content="Testuj" Width="100" Height="28" Click="btnTestTactical_Click"/>
+                            <TextBlock x:Name="lblTacticalStatus" VerticalAlignment="Center" Margin="10,0,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Dashboard:" Width="90" VerticalAlignment="Center"/>
+                            <TextBox x:Name="txtTacticalDashboardUrl" Width="300" Height="28" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="ACL - podsieci, nazwy i numeracja:"
+                               FontWeight="Bold"
+                               Grid.Row="4"
+                               Margin="0,15,0,5"/>
+
+                    <Grid Grid.Row="5" Margin="0,0,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -515,7 +546,7 @@
                         <TextBox x:Name="txtAclSeqOut" Grid.Row="4" Grid.Column="3" Height="28" VerticalContentAlignment="Center" Margin="0,0,0,0"/>
                     </Grid>
 
-                    <Border Grid.Row="5"
+                    <Border Grid.Row="7"
                             BorderThickness="1"
                             BorderBrush="#CCCCCC"
                             Padding="10">
@@ -964,6 +995,26 @@
                                 Numer wersji musi zgadzać się z tagiem wydania (np. wersja 1.1.0 to tag v1.1.0).
                                 Instalator NarzedziaIP.Updater.exe można też uruchomić podwójnym kliknięciem:
                                 sam wykryje program obok siebie, sprawdzi wersję i zaproponuje instalację.
+                            </Paragraph>
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                8. TacticalRMM
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk Tactical</Bold> otwiera pulpit zdalny komputera
+                                przez TacticalRMM (Mesh) - bez zabierania sesji jak RDP:
+                                użytkownik widzi na ekranie, co robisz.
+                                Program znajduje agenta po nazwie hosta przez API TacticalRMM
+                                i otwiera stronę przejcia do pulpitu w przeglądarce.
+                            </Paragraph>
+
+                            <Paragraph>
+                                W zakładce <Bold>Ustawienia</Bold> wpisz adres API TacticalRMM,
+                                klucz API (klucz to dane wrażliwe - chroń je jak hasło)
+                                oraz adres dashboardu. Przycisk <Bold>Testuj</Bold>
+                                sprawdza połączenie i liczy agentów.
+                                Wpisanie samego adresu IP nie wystarczy - potrzebna jest
+                                nazwa hosta (wpisz ją albo wyszukaj komputer).
                             </Paragraph>
 
                         </FlowDocument>
