@@ -43,8 +43,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AclRemarkTests.cs" />
+    <Compile Include="DhcpClientTests.cs" />
     <Compile Include="AclWildcardTests.cs" />
     <Compile Include="IpSelectionTests.cs" />
+    <Compile Include="PingHelperTests.cs" />
     <Compile Include="UpdateFlowTests.cs" />
     <Compile Include="UpdaterQuotingTests.cs" />
     <Compile Include="UpdaterStandaloneTests.cs" />

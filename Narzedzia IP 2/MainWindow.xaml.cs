@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -436,142 +437,84 @@ namespace NarzedziaIP
         // DHCP POWERSHELL QUERY
         // ============================================================
 
+        // Zakresy równolegle (max 4 naraz) + cache listy zakresów 10 min.
+        // Zachowanie z zewnątrz jak dotąd: TimeoutException po 60 s,
+        // padnięty zakres jest pomijany.
         private async Task<List<DhcpLease>> GetDhcpLeasesAsync(string dhcpServer, string hostname)
         {
-            return await Task.Run(() =>
-            {
-                const int timeoutMs = 60000; // 60 seconds
+            const int timeoutMs = 60000; // 60 seconds
 
-                string safeDhcpServer = EscapePowerShellSingleQuotedString(dhcpServer);
-                string safeHostname = EscapePowerShellSingleQuotedString(hostname);
-
-                string psCommand = $@"
-$ErrorActionPreference = 'Stop'
-
-$server = '{safeDhcpServer}'
-$name = '{safeHostname}'
-
-$scopes = Get-DhcpServerv4Scope -ComputerName $server -ErrorAction Stop
-
-foreach ($scope in $scopes) {{
-    try {{
-        Get-DhcpServerv4Lease -ComputerName $server -ScopeId $scope.ScopeId -ErrorAction Stop |
-        Where-Object {{
-            $_.HostName -and $_.HostName -like ($name + '*')
-        }} |
-        ForEach-Object {{
-            $ip = $_.IPAddress.IPAddressToString
-
-            if ([string]::IsNullOrWhiteSpace($ip)) {{
-                $ip = $_.IPAddress.ToString()
-            }}
-
-            Write-Output ($_.HostName + ""`t"" + $ip + ""`t"" + $_.ClientId)
-        }}
-    }}
-    catch {{
-        # Ignore failed scope and continue with next one
-    }}
-}}
-";
-
-                ProcessStartInfo psi = new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + EncodePowerShellCommand(psCommand),
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
-
-                using (Process process = new Process())
-                {
-                    process.StartInfo = psi;
-
-                    process.Start();
-
-                    Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
-                    Task<string> errorTask = process.StandardError.ReadToEndAsync();
-
-                    bool exited = process.WaitForExit(timeoutMs);
-
-                    if (!exited)
-                    {
-                        try
-                        {
-                            process.Kill();
-                        }
-                        catch
-                        {
-                            // ignore kill errors
-                        }
-
-                        throw new TimeoutException(
-                            $"Zapytanie DHCP przekroczyło limit czasu {timeoutMs / 1000} sekund. Serwer DHCP: {dhcpServer}"
-                        );
-                    }
-
-                    string output = outputTask.Result;
-                    string error = errorTask.Result;
-
-                    if (process.ExitCode != 0)
-                    {
-                        throw new Exception(
-                            $"PowerShell DHCP query failed.{Environment.NewLine}{Environment.NewLine}{error}"
-                        );
-                    }
-
-                    List<DhcpLease> result = new List<DhcpLease>();
-
-                    string[] lines = output.Split(
-                        new[] { "\r\n", "\n" },
-                        StringSplitOptions.RemoveEmptyEntries
-                    );
-
-                    foreach (string line in lines)
-                    {
-                        string[] parts = line.Split('\t');
-
-                        if (parts.Length < 3)
-                            continue;
-
-                        result.Add(new DhcpLease
-                        {
-                            HostName = parts[0].Trim(),
-                            IPAddress = parts[1].Trim(),
-                            MacAddress = parts[2].Trim()
-                        });
-                    }
-
-                    return result;
-                }
-            });
-        }
-
-        // ============================================================
-        // PING HELPERS
-        // ============================================================
-
-        private async Task<bool> PingHostAsync(string ipAddress)
-        {
-            return await Task.Run(() =>
+            using (CancellationTokenSource cts = new CancellationTokenSource(timeoutMs))
             {
                 try
                 {
-                    using (Ping ping = new Ping())
+                    List<string> scopes;
+                    List<string> cached;
+                    if (DhcpClient.TryGetCachedScopes(dhcpServer, TimeSpan.FromMinutes(DhcpClient.ScopeCacheMinutes), out cached))
                     {
-                        PingReply reply = ping.Send(ipAddress, 1000);
-                        return reply.Status == IPStatus.Success;
+                        scopes = cached;
+                    }
+                    else
+                    {
+                        string scopesOutput = await DhcpClient.RunPowerShellAsync(
+                            DhcpClient.BuildScopesCommand(dhcpServer), 15000, cts.Token).ConfigureAwait(false);
+                        scopes = DhcpClient.ParseScopeIds(scopesOutput);
+                        DhcpClient.StoreScopes(dhcpServer, scopes);
+                    }
+
+                    SemaphoreSlim gate = new SemaphoreSlim(DhcpClient.MaxParallelScopes);
+                    try
+                    {
+                        List<Task<List<DhcpLease>>> tasks = scopes
+                            .Select(scopeId => QueryScopeAsync(dhcpServer, hostname, scopeId, gate, cts.Token))
+                            .ToList();
+                        List<DhcpLease>[] perScope = await Task.WhenAll(tasks).ConfigureAwait(false);
+                        return perScope.SelectMany(x => x).ToList();
+                    }
+                    finally
+                    {
+                        gate.Dispose();
                     }
                 }
-                catch
+                catch (OperationCanceledException)
                 {
-                    return false;
+                    throw new TimeoutException(
+                        $"Zapytanie DHCP przekroczyło limit czasu {timeoutMs / 1000} sekund. Serwer DHCP: {dhcpServer}"
+                    );
                 }
-            });
+            }
+        }
+
+        private static async Task<List<DhcpLease>> QueryScopeAsync(string dhcpServer, string hostname, string scopeId, SemaphoreSlim gate, CancellationToken cancel)
+        {
+            await gate.WaitAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                string output = await DhcpClient.RunPowerShellAsync(
+                    DhcpClient.BuildScopeLeasesCommand(dhcpServer, scopeId, hostname), 30000, cancel).ConfigureAwait(false);
+                return DhcpClient.ParseLeaseLines(output);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return new List<DhcpLease>(); // ignore failed scope and continue
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }
+
+        // ============================================================
+        // PING HELPERS (implementacja: PingHelper.cs - testowalna)
+        // ============================================================
+
+        private Task<bool> PingHostAsync(string ipAddress)
+        {
+            return PingHelper.PingHostAsync(ipAddress);
         }
 
         // ============================================================
@@ -866,8 +809,8 @@ foreach ($scope in $scopes) {{
             {
                 try
                 {
-                    string safeDhcp = EscapePowerShellSingleQuotedString(_dhcpIp);
-                    string safeIp = EscapePowerShellSingleQuotedString(ip);
+                    string safeDhcp = DhcpClient.EscapePowerShellSingleQuotedString(_dhcpIp);
+                    string safeIp = DhcpClient.EscapePowerShellSingleQuotedString(ip);
 
                     string ps = $@"
 $ErrorActionPreference = 'Stop'
@@ -899,7 +842,7 @@ Write-Output 'NOTFOUND'
                     ProcessStartInfo psi = new ProcessStartInfo
                     {
                         FileName = "powershell.exe",
-                        Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + EncodePowerShellCommand(ps),
+                        Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + DhcpClient.EncodePowerShellCommand(ps),
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         CreateNoWindow = true
@@ -1295,23 +1238,7 @@ Write-Output 'NOTFOUND'
 
 
         }
-        private static string EscapePowerShellSingleQuotedString(string value)
-        {
-            return value.Replace("'", "''");
-        }
-
-        private static string EncodePowerShellCommand(string command)
-        {
-            byte[] bytes = Encoding.Unicode.GetBytes(command);
-            return Convert.ToBase64String(bytes);
-        }
-
-        private class DhcpLease
-        {
-            public string HostName { get; set; }
-            public string IPAddress { get; set; }
-            public string MacAddress { get; set; }
-        }
+        // Escape/Encode PowerShell + DhcpLease: patrz DhcpClient.cs.
         private void SetSearchInProgress(bool inProgress, string statusText = "")
         {
             progressSearch.Visibility = inProgress ? Visibility.Visible : Visibility.Collapsed;

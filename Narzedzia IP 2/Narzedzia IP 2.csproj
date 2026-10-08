@@ -80,6 +80,7 @@
     </Compile>
     <Compile Include="App.Update.cs" />
     <Compile Include="AclWildcard.cs" />
+    <Compile Include="DhcpClient.cs" />
     <Compile Include="AclRemark.cs" />
     <Compile Include="IpSelection.cs" />
     <Compile Include="BootUpdateWindow.xaml.cs">
@@ -88,6 +89,7 @@
     <Compile Include="MainWindow.Dhcp.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="PingHelper.cs" />
     <Compile Include="MainWindow.Update.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>

@@ -118,7 +118,7 @@ namespace NarzedziaIP
             {
                 try
                 {
-                    string safeDhcpServer = EscapePowerShellSingleQuotedString(dhcpServer);
+                    string safeDhcpServer = DhcpClient.EscapePowerShellSingleQuotedString(dhcpServer);
 
                     string psCommand =
                         "$ErrorActionPreference = 'Stop'\r\n" +
@@ -127,7 +127,7 @@ namespace NarzedziaIP
                     ProcessStartInfo psi = new ProcessStartInfo
                     {
                         FileName = "powershell.exe",
-                        Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + EncodePowerShellCommand(psCommand),
+                        Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + DhcpClient.EncodePowerShellCommand(psCommand),
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,

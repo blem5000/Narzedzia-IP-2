@@ -1,0 +1,51 @@
+name: release
+
+# Tag v* pushowany do main: build + testy + paczka + GitHub Release z assetem.
+# Zastępuje ręczny build_release.ps1 (zostaje do budowania lokalnego).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet
+        run: msbuild "Narzedzia IP 2.sln" -t:restore -p:Configuration=Release -v:minimal -nologo
+
+      - name: Build
+        run: msbuild "Narzedzia IP 2.sln" -p:Configuration=Release -v:minimal -nologo
+
+      - name: Test
+        shell: powershell
+        run: |
+          $vstest = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.PackageGroup.TestTools.Core -find **\vstest.console.exe | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($vstest)) { throw "vstest.console.exe not found" }
+          & $vstest "NarzedziaIP.Tests\bin\Release\NarzedziaIP.Tests.dll"
+
+      - name: Package
+        shell: powershell
+        run: |
+          $Dist = "dist\NarzedziaIP2"
+          if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
+          New-Item -ItemType Directory -Path $Dist | Out-Null
+          Copy-Item "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe" $Dist -Force
+          Copy-Item "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe.config" $Dist -Force
+          Copy-Item "NarzedziaIP.Updater\bin\Release\NarzedziaIP.Updater.exe" $Dist -Force
+          Compress-Archive -Path $Dist -DestinationPath "dist\NarzedziaIP2-windows.zip"
+
+      - name: GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          gh release create $tag "dist\NarzedziaIP2-windows.zip" --title $tag --notes "Automatyczny release z CI (build + 125 testów + paczka)."
