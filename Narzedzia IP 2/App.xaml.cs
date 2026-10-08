@@ -11,6 +11,16 @@ namespace NarzedziaIP
             // Prevent WPF from shutting down when the first dialog window closes.
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+            // Silent self-update check (like cisco-acl-helper boot check).
+            // When a newer GitHub release is downloaded, the GUI updater
+            // takes over - just exit here.
+            bool updated = BootUpdate.TrySilentUpdateAsync().GetAwaiter().GetResult();
+            if (updated)
+            {
+                Shutdown();
+                return;
+            }
+
             DhcpWindow dhcpWindow = new DhcpWindow();
 
             bool? result = dhcpWindow.ShowDialog();

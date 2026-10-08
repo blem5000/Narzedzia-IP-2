@@ -26,5 +26,35 @@ namespace Narzedzia_IP_2.Properties
                 return defaultInstance;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UpdateAuto
+        {
+            get
+            {
+                return ((bool)(this["UpdateAuto"]));
+            }
+            set
+            {
+                this["UpdateAuto"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string UpdateSkipped
+        {
+            get
+            {
+                return ((string)(this["UpdateSkipped"]));
+            }
+            set
+            {
+                this["UpdateSkipped"] = value;
+            }
+        }
     }
 }

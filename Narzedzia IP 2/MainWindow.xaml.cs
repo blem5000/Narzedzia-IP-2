@@ -47,6 +47,8 @@ namespace NarzedziaIP
 
             Title = $"Narzedzia IP - DHCP: {_dhcpIp}";
 
+            Loaded += MainWindow_Loaded;
+
             pingTimer.Interval = TimeSpan.FromSeconds(1);
             pingTimer.Tick += PingTimer_Tick;
 

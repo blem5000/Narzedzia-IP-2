@@ -397,7 +397,12 @@
 
             <TabItem x:Name="tabHelp" Header="Instrukcja">
                 <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <RichTextBox x:Name="rtbManual"
+                                 Grid.Row="0"
                      IsReadOnly="True"
                      VerticalScrollBarVisibility="Auto"
                      FontFamily="Segoe UI"
@@ -765,9 +770,56 @@
                                 <Bold>Przycisk Kopiuj do schowka:</Bold>
                                 kopiuje wygenerowaną konfigurację do schowka.
                             </Paragraph>
+                            <Paragraph FontSize="16" FontWeight="Bold">
+                                7. Aktualizacje
+                            </Paragraph>
+
+                            <Paragraph>
+                                Program sam sprawdza aktualizacje w GitHub Releases
+                                (<Bold>blem5000/Narzedzia-IP-2</Bold>) przy każdym uruchomieniu.
+                                Gdy znajdzie nowszą wersję, pobiera paczkę
+                                <Bold>NarzedziaIP2-windows.zip</Bold> i przekazuje instalację
+                                osobnemu programowi <Bold>NarzedziaIP.Updater.exe</Bold>,
+                                który podmienia pliki i uruchamia nową wersję.
+                                Gdy instalator GUI jest niedostępny, używany jest awaryjny skrypt .bat.
+                            </Paragraph>
+
+                            <Paragraph>
+                                W dolnej części tej zakładki widać numer wersji,
+                                przełącznik automatycznego sprawdzania oraz przycisk
+                                <Bold>Sprawdź aktualizacje</Bold> do ręcznej kontroli.
+                                Przycisk <Bold>Pomiń tę wersję</Bold> wycisza powiadomienie
+                                o danym wydaniu.
+                                Numer wersji musi zgadzać się z tagiem wydania (np. wersja 1.1.0 to tag v1.1.0).
+                            </Paragraph>
 
                         </FlowDocument>
                     </RichTextBox>
+
+                    <Border Grid.Row="1"
+                            Margin="0,10,0,0"
+                            BorderThickness="1"
+                            BorderBrush="#CCCCCC"
+                            Padding="10">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="lblAppVersion"
+                                       Text="Wersja: ..."
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"/>
+                            <CheckBox x:Name="chkUpdateAuto"
+                                      Content="Automatyczne sprawdzanie aktualizacji"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,15,0"
+                                      Checked="chkUpdateAuto_Checked"
+                                      Unchecked="chkUpdateAuto_Unchecked"/>
+                            <Button x:Name="btnCheckUpdate"
+                                    Content="Sprawdź aktualizacje"
+                                    Width="170"
+                                    Height="32"
+                                    Click="btnCheckUpdate_Click"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
         </TabControl>
