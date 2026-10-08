@@ -82,6 +82,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="App.Update.cs" />
+    <Compile Include="AclWildcard.cs" />
     <Compile Include="BootUpdateWindow.xaml.cs">
       <DependentUpon>BootUpdateWindow.xaml</DependentUpon>
     </Compile>

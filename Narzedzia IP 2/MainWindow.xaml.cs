@@ -562,8 +562,13 @@ foreach ($scope in $scopes) {{
             }
         }
 
-        private void PingTimer_Tick(object sender, EventArgs e)
+        private bool _pingBusy;
+
+        private async void PingTimer_Tick(object sender, EventArgs e)
         {
+            if (_pingBusy)
+                return;
+
             if (pingIPs.Count == 0)
             {
                 pingTimer.Stop();
@@ -576,11 +581,13 @@ foreach ($scope in $scopes) {{
 
             string ip = pingIPs.First();
 
+            _pingBusy = true;
+
             try
             {
                 using (Ping p = new Ping())
                 {
-                    PingReply reply = p.Send(ip, 1000);
+                    PingReply reply = await p.SendPingAsync(ip, 1000);
 
                     bool success = reply.Status == IPStatus.Success;
 
@@ -598,6 +605,10 @@ foreach ($scope in $scopes) {{
                 );
 
                 PlayPingSound(false);
+            }
+            finally
+            {
+                _pingBusy = false;
             }
 
             rtbPing.ScrollToEnd();
@@ -695,16 +706,6 @@ foreach ($scope in $scopes) {{
         // HELPERS
         // ============================================================
         private readonly Dictionary<string, bool> _dhcpCache = new Dictionary<string, bool>();
-
-        private void txtAclSource_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
-        {
-            _dhcpTypingTimer.Stop();
-            _dhcpTypingTimer.Start();
-
-            // status "pisanie"
-            lblDhcpStatus.Text = "⌨️ Wpisywanie...";
-            lblDhcpStatus.Foreground = Brushes.Gray;
-        }
 
         private async void DhcpTypingTimer_Tick(object sender, EventArgs e)
         {
@@ -828,80 +829,7 @@ Write-Output 'NOTFOUND'
             return result;
         }
 
-        uint IPToUint(string ip)
-        {
-            var bytes = System.Net.IPAddress.Parse(ip).GetAddressBytes();
-            Array.Reverse(bytes);
-            return BitConverter.ToUInt32(bytes, 0);
-        }
-
-        string UintToIP(uint ip)
-        {
-            var bytes = BitConverter.GetBytes(ip);
-            Array.Reverse(bytes);
-            return new System.Net.IPAddress(bytes).ToString();
-        }
-
-        List<(string Network, string Wildcard)> MergeToWildcard(List<string> ips)
-        {
-            var ipInts = ips
-                .Select(IPToUint)
-                .OrderBy(x => x)
-                .ToList();
-
-            var result = new List<(string, string)>();
-
-            while (ipInts.Count > 0)
-            {
-
-                var set = new HashSet<uint>(ipInts);
-
-                uint start = ipInts[0];
-                uint size = 1;
-
-                while (true)
-                {
-                    uint nextSize = size * 2;
-
-                    if (start % nextSize != 0)
-                        break;
-
-
-                    var range = Enumerable.Range(0, (int)nextSize)
-                        .Select(i => start + (uint)i);
-
-                    if (range.All(r => set.Contains(r)))
-                        size = nextSize;
-                    else
-                        break;
-                }
-
-                string wildcard;
-
-                switch (size)
-                {
-                    case 1: wildcard = "0.0.0.0"; break;
-                    case 2: wildcard = "0.0.0.1"; break;
-                    case 4: wildcard = "0.0.0.3"; break;
-                    case 8: wildcard = "0.0.0.7"; break;
-                    case 16: wildcard = "0.0.0.15"; break;
-                    case 32: wildcard = "0.0.0.31"; break;
-                    case 64: wildcard = "0.0.0.63"; break;
-                    case 128: wildcard = "0.0.0.127"; break;
-                    default: wildcard = "0.0.0.0"; break;
-                }
-
-                result.Add((UintToIP(start), wildcard));
-
-                ipInts = ipInts
-                    .Where(x => x > start + size - 1)
-                    .ToList();
-            }
-
-            return result;
-        }
-
-
+        // Agregacja wildcardów: patrz AclWildcard.cs (poprawka: bloki > /25).
 
         private async void BtnGenerateAcl_Click(object sender, RoutedEventArgs e)
         {
@@ -1013,7 +941,7 @@ Write-Output 'NOTFOUND'
                 // ===== SUBNET 1 =====
                 if (group1.Count > 0)
                 {
-                    var blocks = MergeToWildcard(group1.OrderBy(IPToUint).ToList());
+                    var blocks = AclWildcard.MergeToWildcard(group1.OrderBy(AclWildcard.IPToUint).ToList());
 
                     sb.AppendLine($"ip access-list extended {inAcl1}");
 
@@ -1045,7 +973,7 @@ Write-Output 'NOTFOUND'
                 // ===== SUBNET 2 =====
                 if (group2.Count > 0)
                 {
-                    var blocks = MergeToWildcard(group2.OrderBy(IPToUint).ToList());
+                    var blocks = AclWildcard.MergeToWildcard(group2.OrderBy(AclWildcard.IPToUint).ToList());
 
                     sb.AppendLine($"ip access-list extended {inAcl2}");
 
