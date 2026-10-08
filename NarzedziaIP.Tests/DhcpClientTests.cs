@@ -71,9 +71,58 @@ namespace NarzedziaIP.Tests
         {
             string cmd = DhcpClient.BuildScopeLeasesCommand("srv", "10.0.0.0", "pc'o");
             StringAssert.Contains(cmd, "Get-DhcpServerv4Lease");
-            StringAssert.Contains(cmd, "-ScopeId $scope");
+            StringAssert.Contains(cmd, "-ScopeId $scopeId");
             StringAssert.Contains(cmd, "'pc''o'");
             StringAssert.Contains(cmd, "-like ($name + '*')");
+        }
+
+        [TestMethod]
+        public void BuildChunkCommandHasAllScopesOnce()
+        {
+            string cmd = DhcpClient.BuildScopeLeasesCommand("srv",
+                new System.Collections.Generic.List<string> { "10.0.0.0", "10.0.1.0" }, "pc");
+            StringAssert.Contains(cmd, "'10.0.0.0'");
+            StringAssert.Contains(cmd, "'10.0.1.0'");
+            StringAssert.Contains(cmd, "foreach ($scopeId in $scopeIds)");
+            int first = cmd.IndexOf("Get-DhcpServerv4Lease");
+            Assert.IsTrue(first >= 0);
+            Assert.AreEqual(-1, cmd.IndexOf("Get-DhcpServerv4Lease", first + 1),
+                "jedna komenda na paczkę, nie na zakres");
+        }
+
+        [TestMethod]
+        public void PartitionSplitsEvenly()
+        {
+            var parts = DhcpClient.Partition(
+                new System.Collections.Generic.List<int> { 1, 2, 3, 4 }, 2);
+            Assert.AreEqual(2, parts.Count);
+            CollectionAssert.AreEqual(new System.Collections.Generic.List<int> { 1, 2 }, parts[0]);
+            CollectionAssert.AreEqual(new System.Collections.Generic.List<int> { 3, 4 }, parts[1]);
+        }
+
+        [TestMethod]
+        public void PartitionCapsPartsAndKeepsOrder()
+        {
+            var items = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < 10; i++)
+                items.Add(i);
+            var parts = DhcpClient.Partition(items, 4);
+            Assert.AreEqual(4, parts.Count);
+            var flat = new System.Collections.Generic.List<int>();
+            foreach (var p in parts)
+                flat.AddRange(p);
+            CollectionAssert.AreEqual(items, flat);
+            Assert.IsTrue(parts.TrueForAll(p => p.Count <= 3));
+        }
+
+        [TestMethod]
+        public void PartitionEdgeCases()
+        {
+            Assert.AreEqual(0, DhcpClient.Partition(new System.Collections.Generic.List<int>(), 4).Count);
+            Assert.AreEqual(0, DhcpClient.Partition<int>(null, 4).Count);
+            Assert.AreEqual(0, DhcpClient.Partition(new System.Collections.Generic.List<int> { 1 }, 0).Count);
+            var one = DhcpClient.Partition(new System.Collections.Generic.List<int> { 1, 2 }, 10);
+            Assert.AreEqual(2, one.Count);
         }
     }
 

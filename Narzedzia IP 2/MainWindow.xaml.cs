@@ -516,7 +516,8 @@ namespace NarzedziaIP
         // DHCP POWERSHELL QUERY
         // ============================================================
 
-        // Zakresy równolegle (max 4 naraz) + cache listy zakresów 10 min.
+        // Zakresy w paczkach po max MaxParallelScopes procesów (nie proces
+        // na zakres - to zabijało wydajność przy wielu zakresach).
         // Zachowanie z zewnątrz jak dotąd: TimeoutException po 60 s,
         // padnięty zakres jest pomijany.
         private async Task<List<DhcpLease>> GetDhcpLeasesAsync(string dhcpServer, string hostname)
@@ -541,19 +542,12 @@ namespace NarzedziaIP
                         DhcpClient.StoreScopes(dhcpServer, scopes);
                     }
 
-                    SemaphoreSlim gate = new SemaphoreSlim(DhcpClient.MaxParallelScopes);
-                    try
-                    {
-                        List<Task<List<DhcpLease>>> tasks = scopes
-                            .Select(scopeId => QueryScopeAsync(dhcpServer, hostname, scopeId, gate, cts.Token))
-                            .ToList();
-                        List<DhcpLease>[] perScope = await Task.WhenAll(tasks).ConfigureAwait(false);
-                        return perScope.SelectMany(x => x).ToList();
-                    }
-                    finally
-                    {
-                        gate.Dispose();
-                    }
+                    List<List<string>> chunks = DhcpClient.Partition(scopes, DhcpClient.MaxParallelScopes);
+                    List<Task<List<DhcpLease>>> tasks = chunks
+                        .Select(chunk => QueryScopesChunkAsync(dhcpServer, hostname, chunk, cts.Token))
+                        .ToList();
+                    List<DhcpLease>[] perChunk = await Task.WhenAll(tasks).ConfigureAwait(false);
+                    return perChunk.SelectMany(x => x).ToList();
                 }
                 catch (OperationCanceledException)
                 {
@@ -564,13 +558,12 @@ namespace NarzedziaIP
             }
         }
 
-        private static async Task<List<DhcpLease>> QueryScopeAsync(string dhcpServer, string hostname, string scopeId, SemaphoreSlim gate, CancellationToken cancel)
+        private static async Task<List<DhcpLease>> QueryScopesChunkAsync(string dhcpServer, string hostname, List<string> scopeIds, CancellationToken cancel)
         {
-            await gate.WaitAsync(cancel).ConfigureAwait(false);
             try
             {
                 string output = await DhcpClient.RunPowerShellAsync(
-                    DhcpClient.BuildScopeLeasesCommand(dhcpServer, scopeId, hostname), 30000, cancel).ConfigureAwait(false);
+                    DhcpClient.BuildScopeLeasesCommand(dhcpServer, scopeIds, hostname), 45000, cancel).ConfigureAwait(false);
                 return DhcpClient.ParseLeaseLines(output);
             }
             catch (OperationCanceledException)
@@ -579,11 +572,7 @@ namespace NarzedziaIP
             }
             catch
             {
-                return new List<DhcpLease>(); // ignore failed scope and continue
-            }
-            finally
-            {
-                gate.Release();
+                return new List<DhcpLease>(); // ignore failed chunk and continue
             }
         }
 

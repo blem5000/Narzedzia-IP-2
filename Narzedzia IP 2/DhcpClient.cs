@@ -136,20 +136,49 @@ namespace NarzedziaIP
 
         public static string BuildScopeLeasesCommand(string dhcpServer, string scopeId, string hostname)
         {
+            return BuildScopeLeasesCommand(dhcpServer, new[] { scopeId }, hostname);
+        }
+
+        // Jedna komenda na PACZKĘ zakresów (jeden proces PowerShell na paczkę,
+        // nie na zakres!). Proces na zakres zabijał wydajność przy wielu
+        // zakresach: start powershell.exe + ładowanie modułu DHCP za każdym
+        // razem było droższe niż same zapytania.
+        public static string BuildScopeLeasesCommand(string dhcpServer, IEnumerable<string> scopeIds, string hostname)
+        {
             string safeServer = EscapePowerShellSingleQuotedString(dhcpServer);
-            string safeScope = EscapePowerShellSingleQuotedString(scopeId);
             string safeName = EscapePowerShellSingleQuotedString(hostname);
+            List<string> ids = (scopeIds ?? Enumerable.Empty<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => "'" + EscapePowerShellSingleQuotedString(s.Trim()) + "'")
+                .ToList();
             return "$ErrorActionPreference = 'Stop'\r\n"
                 + "$server = '" + safeServer + "'\r\n"
-                + "$scope = '" + safeScope + "'\r\n"
                 + "$name = '" + safeName + "'\r\n"
-                + "Get-DhcpServerv4Lease -ComputerName $server -ScopeId $scope -ErrorAction Stop |\r\n"
+                + "$scopeIds = @(" + string.Join(", ", ids) + ")\r\n"
+                + "foreach ($scopeId in $scopeIds) {\r\n"
+                + "try {\r\n"
+                + "Get-DhcpServerv4Lease -ComputerName $server -ScopeId $scopeId -ErrorAction Stop |\r\n"
                 + "Where-Object { $_.HostName -and $_.HostName -like ($name + '*') } |\r\n"
                 + "ForEach-Object {\r\n"
                 + "    $ip = $_.IPAddress.IPAddressToString\r\n"
                 + "    if ([string]::IsNullOrWhiteSpace($ip)) { $ip = $_.IPAddress.ToString() }\r\n"
                 + "    Write-Output ($_.HostName + \"`t\" + $ip + \"`t\" + $_.ClientId)\r\n"
+                + "}\r\n"
+                + "} catch { }\r\n"
                 + "}\r\n";
+        }
+
+        // Dzielenie zakresów na co najwyżej maxParts paczek (kolejność zachowana).
+        public static List<List<T>> Partition<T>(List<T> items, int maxParts)
+        {
+            List<List<T>> result = new List<List<T>>();
+            if (items == null || items.Count == 0 || maxParts <= 0)
+                return result;
+            int parts = Math.Min(maxParts, items.Count);
+            int size = (items.Count + parts - 1) / parts;
+            for (int i = 0; i < items.Count; i += size)
+                result.Add(items.GetRange(i, Math.Min(size, items.Count - i)));
+            return result;
         }
 
         // ---- wykonanie ----
