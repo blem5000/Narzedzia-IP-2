@@ -120,6 +120,13 @@
                                 Margin="0,0,10,10"
                                 Click="btnMSRA_Click"/>
 
+                        <Button x:Name="btnRDP"
+                                Content="RDP"
+                                Width="92"
+                                Height="40"
+                                Margin="0,0,10,10"
+                                Click="btnRDP_Click"/>
+
                     </WrapPanel>
 
                     <!-- Result box -->
@@ -678,6 +685,13 @@
                             <Paragraph>
                                 <Bold>Przycisk MSRA:</Bold>
                                 Uruchamia Pomoc zdalną Microsoft Remote Assistance dla aktualnie wyświetlonego adresu IP.
+                                Gdy na komputerze nie ma pliku msra.exe, program zaproponuje połączenie przez RDP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Przycisk RDP:</Bold>
+                                Uruchamia Podłączanie pulpitu zdalnego (mstsc) dla wybranego adresu IP.
+                                Wymaga włączonego RDP na komputerze docelowym.
                             </Paragraph>
 
                             <List>

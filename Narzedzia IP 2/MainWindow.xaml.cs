@@ -74,6 +74,7 @@ namespace NarzedziaIP
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
             btnMSRA.IsEnabled = false;
+            btnRDP.IsEnabled = false;
             btnStopPing.IsEnabled = false;
 
             txtHostname.KeyDown += txtHostname_KeyDown;
@@ -251,6 +252,7 @@ namespace NarzedziaIP
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
             btnMSRA.IsEnabled = false;
+            btnRDP.IsEnabled = false;
 
             txtHostname.Focus();
         }
@@ -346,6 +348,7 @@ namespace NarzedziaIP
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = true;
+                btnRDP.IsEnabled = true;
 
                 txtHistoria.AppendText(
                     $"{hostname}\tWpisano IP bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -421,6 +424,7 @@ namespace NarzedziaIP
                     btnCopyIP.IsEnabled = true;
                     btnCopyMAC.IsEnabled = true;
                     btnMSRA.IsEnabled = true;
+                    btnRDP.IsEnabled = true;
                 }
                 else
                 {
@@ -486,6 +490,7 @@ namespace NarzedziaIP
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = true;
+                btnRDP.IsEnabled = true;
 
                 txtHistoria.AppendText(
                     $"{input}\tPołączenie MSRA bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -827,12 +832,15 @@ namespace NarzedziaIP
 
             if (string.IsNullOrWhiteSpace(msraPath))
             {
-                MessageBox.Show(
-                    "Nie znaleziono pliku msra.exe.\n\nSprawdź, czy Pomoc zdalna Microsoft jest dostępna na tym komputerze.",
+                var answer = MessageBox.Show(
+                    "Nie znaleziono pliku msra.exe.\n\nSprawdź, czy Pomoc zdalna Microsoft jest dostępna na tym komputerze.\n\nUżyć zamiast tego RDP (mstsc)?",
                     "MSRA - brak pliku",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning
                 );
+
+                if (answer == MessageBoxResult.Yes)
+                    StartRDP();
 
                 return;
             }
@@ -853,6 +861,93 @@ namespace NarzedziaIP
                 MessageBox.Show(
                     "Nie udało się uruchomić MSRA.\n\n" + ex.Message,
                     "Błąd MSRA",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        private void btnRDP_Click(object sender, RoutedEventArgs e)
+        {
+            StartRDP();
+        }
+
+        private void StartRDP()
+        {
+            if (DistinctActiveIpCount() > 1 && string.IsNullOrWhiteSpace(SelectedLeaseIp()))
+            {
+                MessageBox.Show(
+                    "Znaleziono więcej niż jeden aktywny adres IP. Wybierz jeden z listy.",
+                    "RDP",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information
+                );
+
+                return;
+            }
+
+            string ip = ResolveActiveIp();
+
+            if (string.IsNullOrWhiteSpace(ip))
+                return;
+
+            string args = RemoteConnect.BuildMstscArguments(ip);
+            if (args == null)
+            {
+                MessageBox.Show(
+                    "Aktualna wartość IP nie wygląda jak poprawny adres IPv4.",
+                    "RDP",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+
+                return;
+            }
+
+            string windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+            string mstscPathSysnative = System.IO.Path.Combine(windowsDir, "Sysnative", "mstsc.exe");
+            string mstscPathSystem32 = System.IO.Path.Combine(windowsDir, "System32", "mstsc.exe");
+
+            string mstscPath = null;
+
+            if (Environment.Is64BitOperatingSystem && !Environment.Is64BitProcess && System.IO.File.Exists(mstscPathSysnative))
+            {
+                mstscPath = mstscPathSysnative;
+            }
+            else if (System.IO.File.Exists(mstscPathSystem32))
+            {
+                mstscPath = mstscPathSystem32;
+            }
+
+            if (string.IsNullOrWhiteSpace(mstscPath))
+            {
+                MessageBox.Show(
+                    "Nie znaleziono pliku mstsc.exe.",
+                    "RDP - brak pliku",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
+                return;
+            }
+
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = mstscPath,
+                    Arguments = args,
+                    UseShellExecute = false
+                };
+
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Nie udało się uruchomić RDP.\n\n" + ex.Message,
+                    "Błąd RDP",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error
                 );
@@ -1380,6 +1475,7 @@ Write-Output 'NOTFOUND'
                 btnCopyIP.IsEnabled = false;
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = false;
+            btnRDP.IsEnabled = false;
                 btnSearchConnect.IsEnabled = true;
             }
         }
