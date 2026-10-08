@@ -181,11 +181,11 @@ namespace NarzedziaIP
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = true;
 
-                rtbHistoria.AppendText(
+                txtHistoria.AppendText(
                     $"{hostname}\tWpisano IP bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
                 );
 
-                rtbHistoria.ScrollToEnd();
+                txtHistoria.ScrollToEnd();
 
                 return;
             }
@@ -235,11 +235,11 @@ namespace NarzedziaIP
                     lblIP.Text = string.Join(", ", poprawnyIP.Distinct());
                     lblMAC.Text = string.Join(", ", poprawnyMAC.Distinct());
 
-                    rtbHistoria.AppendText(
+                    txtHistoria.AppendText(
                         $"{hostname}\t{lblIP.Text}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
                     );
 
-                    rtbHistoria.ScrollToEnd();
+                    txtHistoria.ScrollToEnd();
 
                     await CheckDnsVsDhcpAsync(hostname, poprawnyIP);
 
@@ -254,11 +254,11 @@ namespace NarzedziaIP
 
                     if (niePoprawnyIP.Count > 0)
                     {
-                        rtbHistoria.AppendText(
+                        txtHistoria.AppendText(
                             $"{hostname}\tNieaktywne: {string.Join(", ", niePoprawnyIP.Distinct())}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
                         );
 
-                        rtbHistoria.ScrollToEnd();
+                        txtHistoria.ScrollToEnd();
                     }
                 }
             }
@@ -267,11 +267,11 @@ namespace NarzedziaIP
                 lblIP.Text = "Błąd DHCP";
                 lblMAC.Text = "";
 
-                rtbHistoria.AppendText(
+                txtHistoria.AppendText(
                     $"Błąd DHCP: {ex.Message}{Environment.NewLine}"
                 );
 
-                rtbHistoria.ScrollToEnd();
+                txtHistoria.ScrollToEnd();
 
                 MessageBox.Show(
                     ex.Message,
@@ -309,11 +309,11 @@ namespace NarzedziaIP
                 btnCopyMAC.IsEnabled = false;
                 btnMSRA.IsEnabled = true;
 
-                rtbHistoria.AppendText(
+                txtHistoria.AppendText(
                     $"{input}\tPołączenie MSRA bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
                 );
 
-                rtbHistoria.ScrollToEnd();
+                txtHistoria.ScrollToEnd();
 
                 StartMSRA();
                 return;
@@ -485,20 +485,20 @@ foreach ($scope in $scopes) {{
 
             if (string.IsNullOrWhiteSpace(hostname))
             {
-                rtbPing.AppendText($"Brak hostname{Environment.NewLine}");
-                rtbPing.ScrollToEnd();
+                txtPing.AppendText($"Brak hostname{Environment.NewLine}");
+                txtPing.ScrollToEnd();
                 return;
             }
 
             if (IsIPv4Address(hostname))
             {
-                rtbPing.Clear();
+                txtPing.Clear();
 
                 pingIPs.Clear();
                 pingIPs.Add(hostname);
 
-                rtbPing.AppendText($"Pinguję wpisany adres IP: {hostname}{Environment.NewLine}");
-                rtbPing.ScrollToEnd();
+                txtPing.AppendText($"Pinguję wpisany adres IP: {hostname}{Environment.NewLine}");
+                txtPing.ScrollToEnd();
 
                 btnStartPing.IsEnabled = false;
                 btnStopPing.IsEnabled = true;
@@ -508,8 +508,8 @@ foreach ($scope in $scopes) {{
                 return;
             }
 
-            rtbPing.Clear();
-            rtbPing.AppendText($"Szukam hosta w DHCP: {hostname}{Environment.NewLine}");
+            txtPing.Clear();
+            txtPing.AppendText($"Szukam hosta w DHCP: {hostname}{Environment.NewLine}");
 
             SetPingSearchInProgress(true, "Szukam hosta w DHCP...");
 
@@ -529,16 +529,16 @@ foreach ($scope in $scopes) {{
 
                 if (pingIPs.Count == 0)
                 {
-                    rtbPing.AppendText(
+                    txtPing.AppendText(
                         $"Nie znaleziono aktywnego adresu IP dla: {hostname}{Environment.NewLine}"
                     );
 
-                    rtbPing.ScrollToEnd();
+                    txtPing.ScrollToEnd();
                     return;
                 }
 
-                rtbPing.AppendText($"Pinguję: {pingIPs[0]}{Environment.NewLine}");
-                rtbPing.ScrollToEnd();
+                txtPing.AppendText($"Pinguję: {pingIPs[0]}{Environment.NewLine}");
+                txtPing.ScrollToEnd();
 
                 btnStartPing.IsEnabled = false;
                 btnStopPing.IsEnabled = true;
@@ -547,8 +547,8 @@ foreach ($scope in $scopes) {{
             }
             catch (Exception ex)
             {
-                rtbPing.AppendText($"Błąd DHCP: {ex.Message}{Environment.NewLine}");
-                rtbPing.ScrollToEnd();
+                txtPing.AppendText($"Błąd DHCP: {ex.Message}{Environment.NewLine}");
+                txtPing.ScrollToEnd();
             }
             finally
             {
@@ -591,7 +591,7 @@ foreach ($scope in $scopes) {{
 
                     bool success = reply.Status == IPStatus.Success;
 
-                    rtbPing.AppendText(
+                    txtPing.AppendText(
                         $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {ip} - {reply.Status}{Environment.NewLine}"
                     );
 
@@ -600,7 +600,7 @@ foreach ($scope in $scopes) {{
             }
             catch (Exception ex)
             {
-                rtbPing.AppendText(
+                txtPing.AppendText(
                     $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - Ping error: {ex.Message}{Environment.NewLine}"
                 );
 
@@ -611,7 +611,7 @@ foreach ($scope in $scopes) {{
                 _pingBusy = false;
             }
 
-            rtbPing.ScrollToEnd();
+            txtPing.ScrollToEnd();
         }
 
 
@@ -1198,11 +1198,11 @@ Write-Output 'NOTFOUND'
 
                 lblDnsWarning.Visibility = Visibility.Visible;
 
-                rtbHistoria.AppendText(
+                txtHistoria.AppendText(
                     $"{hostname}\tDNS różni się od DHCP. DNS: {string.Join(", ", dnsIps)}\tDHCP: {string.Join(", ", dhcpIpList)}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
                 );
 
-                rtbHistoria.ScrollToEnd();
+                txtHistoria.ScrollToEnd();
             }
         }
     }

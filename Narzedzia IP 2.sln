@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Narzedzia IP 2", "Narzedzia
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NarzedziaIP.Updater", "NarzedziaIP.Updater\NarzedziaIP.Updater.csproj", "{7B4E9A2C-3F1D-4E8A-9C5B-6D7E8F9A0B1C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NarzedziaIP.Tests", "NarzedziaIP.Tests\NarzedziaIP.Tests.csproj", "{4A7B2C9D-1E6F-4A8B-9C3D-5E7F0A1B2C3D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{7B4E9A2C-3F1D-4E8A-9C5B-6D7E8F9A0B1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B4E9A2C-3F1D-4E8A-9C5B-6D7E8F9A0B1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B4E9A2C-3F1D-4E8A-9C5B-6D7E8F9A0B1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A7B2C9D-1E6F-4A8B-9C3D-5E7F0A1B2C3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A7B2C9D-1E6F-4A8B-9C3D-5E7F0A1B2C3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A7B2C9D-1E6F-4A8B-9C3D-5E7F0A1B2C3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A7B2C9D-1E6F-4A8B-9C3D-5E7F0A1B2C3D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

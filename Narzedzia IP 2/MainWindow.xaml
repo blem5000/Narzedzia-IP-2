@@ -185,7 +185,7 @@
                               Header="Historia"
                               Margin="10,90,0,0">
 
-                        <TextBox x:Name="rtbHistoria"
+                        <TextBox x:Name="txtHistoria"
                                  AcceptsReturn="True"
                                  AcceptsTab="True"
                                  VerticalScrollBarVisibility="Auto"
@@ -295,7 +295,7 @@
                               Grid.ColumnSpan="2"
                               Header="Ping">
 
-                        <TextBox x:Name="rtbPing"
+                        <TextBox x:Name="txtPing"
                                  AcceptsReturn="True"
                                  AcceptsTab="True"
                                  VerticalScrollBarVisibility="Auto"

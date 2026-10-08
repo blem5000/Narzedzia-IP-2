@@ -1,0 +1,26 @@
+name: build-test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet
+        run: msbuild "Narzedzia IP 2.sln" -t:restore -p:Configuration=Release -v:minimal -nologo
+
+      - name: Build
+        run: msbuild "Narzedzia IP 2.sln" -p:Configuration=Release -v:minimal -nologo
+
+      - name: Test
+        shell: powershell
+        run: |
+          $vstest = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.PackageGroup.TestTools.Core -find **\vstest.console.exe | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($vstest)) { throw "vstest.console.exe not found" }
+          & $vstest "NarzedziaIP.Tests\bin\Release\NarzedziaIP.Tests.dll"
