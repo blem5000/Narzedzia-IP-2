@@ -71,4 +71,46 @@ namespace NarzedziaIP.Tests
             }
         }
     }
+
+    [TestClass]
+    public class ProtectedTextTests
+    {
+        [TestMethod]
+        public void Roundtrip()
+        {
+            string cipher = ProtectedText.Protect("tajny-klucz-123");
+            Assert.IsTrue(cipher.StartsWith("DPAPI:"));
+            string plain;
+            Assert.IsTrue(ProtectedText.TryUnprotect(cipher, out plain));
+            Assert.AreEqual("tajny-klucz-123", plain);
+        }
+
+        [TestMethod]
+        public void EmptyStaysEmpty()
+        {
+            Assert.AreEqual("", ProtectedText.Protect(""));
+            Assert.AreEqual("", ProtectedText.Protect(null));
+        }
+
+        [TestMethod]
+        public void GarbageFails()
+        {
+            string plain;
+            Assert.IsFalse(ProtectedText.TryUnprotect("DPAPI:!!!nie-base64!!!", out plain));
+            Assert.IsFalse(ProtectedText.TryUnprotect("jawny-tekst", out plain));
+            Assert.IsFalse(ProtectedText.TryUnprotect("", out plain));
+            Assert.IsFalse(ProtectedText.TryUnprotect(null, out plain));
+        }
+
+        [TestMethod]
+        public void ResolveApiKey()
+        {
+            Assert.AreEqual("reg", ProtectedText.ResolveApiKey("reg", "DPAPI:xxx"));
+            string cipher = ProtectedText.Protect("sekret");
+            Assert.AreEqual("sekret", ProtectedText.ResolveApiKey(null, cipher));
+            Assert.AreEqual("stary-jawny", ProtectedText.ResolveApiKey(" ", "stary-jawny"));
+            Assert.IsNull(ProtectedText.ResolveApiKey(null, null));
+            Assert.IsNull(ProtectedText.ResolveApiKey("  ", " "));
+        }
+    }
 }

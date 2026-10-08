@@ -1,3 +1,4 @@
+using System;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
@@ -38,6 +39,11 @@ namespace NarzedziaIP
             if (!int.TryParse((text ?? string.Empty).Trim(), out v) || v < 1 || v > 300)
                 return fallback <= 0 ? 1 : fallback;
             return v;
+        }
+
+        public static string PingLogFileName(System.DateTime time)
+        {
+            return "ping-" + time.ToString("yyyyMMdd-HHmmss") + ".log";
         }
     }
 

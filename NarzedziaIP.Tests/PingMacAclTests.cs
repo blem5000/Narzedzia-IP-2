@@ -148,5 +148,12 @@ namespace NarzedziaIP.Tests
         {
             Assert.AreEqual(1, PingHelper.ParseIntervalSeconds("x", 0));
         }
+
+        [TestMethod]
+        public void PingLogFileNameHasDate()
+        {
+            Assert.AreEqual("ping-20261008-070500.log",
+                PingHelper.PingLogFileName(new System.DateTime(2026, 10, 8, 7, 5, 0)));
+        }
     }
 }

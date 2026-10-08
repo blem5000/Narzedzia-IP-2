@@ -72,6 +72,33 @@ namespace NarzedziaIP.Tests
         }
 
         [TestMethod]
+        public void StatusAndLastSeenParsed()
+        {
+            var r = TacticalRmm.ParseAgentsJson(
+                "[{\"agent_id\":\"a\",\"hostname\":\"PC1\",\"status\":\"offline\",\"last_seen\":\"2026-10-08 10:00\"}]");
+            Assert.AreEqual(1, r.Count);
+            Assert.AreEqual("offline", r[0].Status);
+            Assert.AreEqual("2026-10-08 10:00", r[0].LastSeen);
+            Assert.IsTrue(r[0].IsOffline);
+        }
+
+        [TestMethod]
+        public void MissingStatusGivesNull()
+        {
+            var r = TacticalRmm.ParseAgentsJson("[{\"agent_id\":\"a\",\"hostname\":\"PC1\"}]");
+            Assert.IsNull(r[0].Status);
+            Assert.IsNull(r[0].LastSeen);
+            Assert.IsFalse(r[0].IsOffline);
+        }
+
+        [TestMethod]
+        public void IsOfflineCaseInsensitive()
+        {
+            var r = TacticalRmm.ParseAgentsJson("[{\"agent_id\":\"a\",\"hostname\":\"PC1\",\"status\":\"Offline\"}]");
+            Assert.IsTrue(r[0].IsOffline);
+        }
+
+        [TestMethod]
         [ExpectedException(typeof(InvalidOperationException))]
         public void InvalidJsonThrows()
         {

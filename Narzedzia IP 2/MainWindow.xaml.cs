@@ -205,6 +205,51 @@ namespace NarzedziaIP
             await StartPingAsync();
         }
 
+        private void btnSavePingLog_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(txtPing.Text))
+                {
+                    MessageBox.Show(
+                        this,
+                        "Brak danych ping do zapisania.",
+                        "Zapis logu ping",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = PingHelper.PingLogFileName(DateTime.Now),
+                    DefaultExt = ".log",
+                    Filter = "Log (*.log)|*.log|Wszystkie pliki (*.*)|*.*",
+                    OverwritePrompt = true
+                };
+
+                if (dlg.ShowDialog(this) == true)
+                {
+                    System.IO.File.WriteAllText(dlg.FileName, txtPing.Text, System.Text.Encoding.UTF8);
+                    MessageBox.Show(
+                        this,
+                        "Zapisano log do:\n" + dlg.FileName,
+                        "Zapis logu ping",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    "Nie udało się zapisać logu:\n\n" + ex.Message,
+                    "Zapis logu ping",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         private void btnStopPing_Click(object sender, RoutedEventArgs e)
         {
             pingTimer.Stop();
@@ -1052,7 +1097,10 @@ namespace NarzedziaIP
                 if (found != null)
                 {
                     btnTactical.IsEnabled = true;
-                    btnTactical.ToolTip = $"TacticalRMM: {found.Hostname} ({found.AgentId})";
+                    string extra = found.IsOffline
+                        ? $" (OFFLINE, ost. widziany: {found.LastSeen})"
+                        : string.Empty;
+                    btnTactical.ToolTip = $"TacticalRMM: {found.Hostname} ({found.AgentId}){extra}";
                 }
                 else
                 {
@@ -1098,7 +1146,7 @@ namespace NarzedziaIP
             {
                 var s = global::Narzedzia_IP_2.Properties.Settings.Default;
                 setApi = s.TacticalApiUrl;
-                setKey = s.TacticalApiKey;
+                setKey = ProtectedText.ResolveApiKey(null, s.TacticalApiKey);
                 setDash = s.TacticalDashboardUrl;
             }
             catch { }
@@ -1162,7 +1210,7 @@ namespace NarzedziaIP
             {
                 var s = global::Narzedzia_IP_2.Properties.Settings.Default;
                 s.TacticalApiUrl = txtTacticalApiUrl.Text.Trim();
-                s.TacticalApiKey = txtTacticalApiKey.Password;
+                s.TacticalApiKey = ProtectedText.Protect(txtTacticalApiKey.Password ?? string.Empty);
                 s.TacticalDashboardUrl = txtTacticalDashboardUrl.Text.Trim();
                 s.Save();
             }
@@ -1253,6 +1301,17 @@ namespace NarzedziaIP
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                     return;
+                }
+
+                if (agent.IsOffline)
+                {
+                    var answer = MessageBox.Show(
+                        $"Agent '{host}' jest offline (ost. widziany: {agent.LastSeen}).\n\nOtworzyć mimo to?",
+                        "TacticalRMM",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+                    if (answer != MessageBoxResult.Yes)
+                        return;
                 }
 
                 string url = TacticalRmm.TakeControlUrl(dashUrl, agent.AgentId);

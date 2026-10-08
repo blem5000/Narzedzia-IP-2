@@ -12,6 +12,13 @@ namespace NarzedziaIP
     {
         public string AgentId { get; set; }
         public string Hostname { get; set; }
+        public string Status { get; set; }
+        public string LastSeen { get; set; }
+
+        public bool IsOffline
+        {
+            get { return string.Equals(Status, "offline", StringComparison.OrdinalIgnoreCase); }
+        }
     }
 
     // Integracja z TacticalRMM (wariant 2): resolve hostname -> agent_id
@@ -100,7 +107,13 @@ namespace NarzedziaIP
                 object hostObj;
                 string host = a.TryGetValue("hostname", out hostObj) && hostObj != null
                     ? Convert.ToString(hostObj).Trim() : string.Empty;
-                result.Add(new TacticalAgent { AgentId = id, Hostname = host });
+                object statusObj;
+                string status = a.TryGetValue("status", out statusObj) && statusObj != null
+                    ? Convert.ToString(statusObj).Trim() : null;
+                object seenObj;
+                string seen = a.TryGetValue("last_seen", out seenObj) && seenObj != null
+                    ? Convert.ToString(seenObj).Trim() : null;
+                result.Add(new TacticalAgent { AgentId = id, Hostname = host, Status = status, LastSeen = seen });
             }
             return result;
         }

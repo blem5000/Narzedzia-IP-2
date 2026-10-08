@@ -318,6 +318,13 @@
                                  Width="50"
                                  Height="32"
                                  VerticalContentAlignment="Center"/>
+
+                        <Button x:Name="btnSavePingLog"
+                                Content="Zapisz log..."
+                                Width="110"
+                                Height="32"
+                                Margin="10,0,0,0"
+                                Click="btnSavePingLog_Click"/>
                     </StackPanel>
 
                     <!-- Ping status / progress -->

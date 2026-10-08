@@ -64,5 +64,36 @@ namespace NarzedziaIP.Tests
             Assert.IsTrue(path.EndsWith("historia.csv"), path);
             StringAssert.Contains(path, "NarzedziaIP2");
         }
+
+        [TestMethod]
+        public void TrimKeepsHeaderPlusLastLines()
+        {
+            string path = Path.Combine(_tmp, "h.csv");
+            DateTime t = new DateTime(2026, 10, 8, 12, 0, 0);
+            for (int i = 0; i < 8; i++)
+                HistoryLog.AppendTo(path, t.AddMinutes(i), "Szukaj", "PC" + i, "10.0.0." + i, "");
+            Assert.IsTrue(HistoryLog.TrimToMaxLines(path, 5));
+            string[] lines = File.ReadAllLines(path);
+            Assert.AreEqual(6, lines.Length);
+            Assert.AreEqual("Data;Akcja;Cel;Wynik;Uwaga", lines[0]);
+            StringAssert.Contains(lines[1], "PC3");
+            StringAssert.Contains(lines[5], "PC7");
+        }
+
+        [TestMethod]
+        public void TrimShortFileUntouched()
+        {
+            string path = Path.Combine(_tmp, "h.csv");
+            HistoryLog.AppendTo(path, DateTime.Now, "Szukaj", "PC1", "10.0.0.1", "");
+            Assert.IsTrue(HistoryLog.TrimToMaxLines(path, 5000));
+            Assert.AreEqual(2, File.ReadAllLines(path).Length);
+        }
+
+        [TestMethod]
+        public void TrimMissingFileIsFalse()
+        {
+            Assert.IsFalse(HistoryLog.TrimToMaxLines(Path.Combine(_tmp, "nie-ma.csv"), 5));
+            Assert.IsFalse(HistoryLog.TrimToMaxLines(null, 5));
+        }
     }
 }

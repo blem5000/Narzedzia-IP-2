@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Win32;
 
 namespace NarzedziaIP
@@ -88,6 +90,58 @@ namespace NarzedziaIP
             if (!string.IsNullOrWhiteSpace(b))
                 return b.Trim();
             return null;
+        }
+    }
+
+    // Klucz API w ustawieniach użytkownika szyfrowany DPAPI (tylko to konto
+    // Windows je odczyta). Rejestr firmowy zostaje jawnym tekstem (DPAPI nie
+    // przeszłoby między maszynami). Stare jawne klucze migrują się same.
+    public static class ProtectedText
+    {
+        private static readonly byte[] Salt = Encoding.UTF8.GetBytes("NarzedziaIP2.Tactical.v1");
+
+        public static string Protect(string plain)
+        {
+            if (string.IsNullOrEmpty(plain))
+                return string.Empty;
+            try
+            {
+                byte[] cipher = ProtectedData.Protect(
+                    Encoding.UTF8.GetBytes(plain), Salt, DataProtectionScope.CurrentUser);
+                return "DPAPI:" + Convert.ToBase64String(cipher);
+            }
+            catch
+            {
+                return plain;
+            }
+        }
+
+        public static bool TryUnprotect(string stored, out string plain)
+        {
+            plain = null;
+            if (string.IsNullOrEmpty(stored) || !stored.StartsWith("DPAPI:", StringComparison.Ordinal))
+                return false;
+            try
+            {
+                byte[] cipher = Convert.FromBase64String(stored.Substring("DPAPI:".Length));
+                plain = Encoding.UTF8.GetString(ProtectedData.Unprotect(cipher, Salt, DataProtectionScope.CurrentUser));
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // Klucz efektywny: rejestr > DPAPI > stary jawny tekst (migracja).
+        public static string ResolveApiKey(string registryKey, string storedKey)
+        {
+            if (!string.IsNullOrWhiteSpace(registryKey))
+                return registryKey.Trim();
+            string plain;
+            if (TryUnprotect(storedKey, out plain))
+                return plain;
+            return string.IsNullOrWhiteSpace(storedKey) ? null : storedKey;
         }
     }
 }
