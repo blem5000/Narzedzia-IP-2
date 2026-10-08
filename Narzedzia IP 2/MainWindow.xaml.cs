@@ -89,7 +89,8 @@ namespace NarzedziaIP
             string ip = ResolveActiveIp();
             if (!string.IsNullOrWhiteSpace(ip))
             {
-                Clipboard.SetText(ip);
+                if (!ClipboardHelper.TrySetText(ip))
+                    ShowClipboardError("Kopiuj IP");
                 return;
             }
 
@@ -108,7 +109,8 @@ namespace NarzedziaIP
             string mac = ResolveActiveMac();
             if (!string.IsNullOrWhiteSpace(mac))
             {
-                Clipboard.SetText(mac.Replace("-", ""));
+                if (!ClipboardHelper.TrySetText(mac.Replace("-", "")))
+                    ShowClipboardError("Kopiuj MAC");
                 return;
             }
 
@@ -120,6 +122,20 @@ namespace NarzedziaIP
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
+        }
+
+        private void ShowClipboardError(string title)
+        {
+            try
+            {
+                MessageBox.Show(
+                    this,
+                    "Nie udało się skopiować do schowka (schowek jest zajęty?).",
+                    title,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            catch { }
         }
 
         private void btnMSRA_Click(object sender, RoutedEventArgs e)
@@ -1205,7 +1221,11 @@ Write-Output 'NOTFOUND'
             }
 
 
-            Clipboard.SetText(txtAclOutput.Text);
+            if (!ClipboardHelper.TrySetText(txtAclOutput.Text))
+            {
+                ShowClipboardError("Kopiuj do schowka");
+                return;
+            }
 
             // ✅ zapamiętaj poprzedni stan
             string prevText = lblDhcpStatus.Text;

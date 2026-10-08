@@ -38,11 +38,14 @@
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AclRemarkTests.cs" />
+    <Compile Include="ClipboardHelperTests.cs" />
     <Compile Include="DhcpClientTests.cs" />
     <Compile Include="AclWildcardTests.cs" />
     <Compile Include="IpSelectionTests.cs" />
