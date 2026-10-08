@@ -10,6 +10,15 @@ namespace NarzedziaIPUpdater
 
             ShutdownMode = ShutdownMode.OnMainWindowClose;
 
+            // Double-click bez parametrów = tryb standalone: updater sam
+            // wykrywa program obok siebie i proponuje aktualizację.
+            if (e.Args == null || e.Args.Length == 0)
+            {
+                MainWindow = new UpdaterWindow();
+                MainWindow.Show();
+                return;
+            }
+
             UpdaterOptions opts;
             string error;
             if (!UpdaterOptions.TryParse(e.Args, out opts, out error))
@@ -23,9 +32,8 @@ namespace NarzedziaIPUpdater
                 return;
             }
 
-            UpdaterWindow win = new UpdaterWindow(opts);
-            MainWindow = win;
-            win.Show();
+            MainWindow = new UpdaterWindow(opts);
+            MainWindow.Show();
         }
     }
 }

@@ -791,6 +791,8 @@
                                 Przycisk <Bold>Pomiń tę wersję</Bold> wycisza powiadomienie
                                 o danym wydaniu.
                                 Numer wersji musi zgadzać się z tagiem wydania (np. wersja 1.1.0 to tag v1.1.0).
+                                Instalator NarzedziaIP.Updater.exe można też uruchomić podwójnym kliknięciem:
+                                sam wykryje program obok siebie, sprawdzi wersję i zaproponuje instalację.
                             </Paragraph>
 
                         </FlowDocument>

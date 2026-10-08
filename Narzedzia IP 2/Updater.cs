@@ -103,8 +103,57 @@ namespace NarzedziaIP
         {
             string name = Path.GetFileName(ExePath());
             if (string.IsNullOrWhiteSpace(name) || !name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                return "Narzedzia IP 2.exe";
+                return MainExeName;
             return name;
+        }
+
+        // Umowna nazwa głównego exe (updater leży obok niego w katalogu instalacji).
+        public const string MainExeName = "Narzedzia IP 2.exe";
+
+        // Znajdź główny exe aplikacji w katalogu (tryb standalone / double-click).
+        // Najpierw umowna nazwa, potem pierwszy inny exe (pomijając siebie).
+        // Zwraca null, gdy nic nie pasuje.
+        public static string FindMainExe(string dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+                return null;
+            string known = Path.Combine(dir, MainExeName);
+            if (File.Exists(known))
+                return known;
+            string self = null;
+            try { self = ExePath(); }
+            catch { self = null; }
+            string[] exes;
+            try { exes = Directory.GetFiles(dir, "*.exe"); }
+            catch { return null; }
+            Array.Sort(exes, StringComparer.OrdinalIgnoreCase);
+            foreach (string f in exes)
+            {
+                if (!string.IsNullOrWhiteSpace(self)
+                    && string.Equals(f, self, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                return f;
+            }
+            return null;
+        }
+
+        // Wersja "x.y.z" z FileVersion exe; null gdy brak pliku lub błąd.
+        public static string InstalledVersion(string exePath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
+                    return null;
+                FileVersionInfo vi = FileVersionInfo.GetVersionInfo(exePath);
+                Version v = new Version(vi.FileMajorPart, vi.FileMinorPart, vi.FileBuildPart, vi.FilePrivatePart);
+                if (v.Revision == 0)
+                    return v.Major + "." + v.Minor + "." + v.Build;
+                return v.ToString();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // Single source of truth, like version.py: assembly version "1.1.0.0" -> "1.1.0".
