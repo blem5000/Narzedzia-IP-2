@@ -42,6 +42,7 @@
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AclRemarkTests.cs" />
     <Compile Include="AclWildcardTests.cs" />
     <Compile Include="IpSelectionTests.cs" />
     <Compile Include="UpdateFlowTests.cs" />

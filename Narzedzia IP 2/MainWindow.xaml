@@ -324,6 +324,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -351,13 +353,22 @@
                  Height="30"
                  Margin="0,5,0,10"/>
 
-                    <!-- DEST LIST -->
-                    <TextBlock Text="Lista IP (ENTER / przecinki):"
+                    <TextBlock Text="Osoba (remark):"
                    Grid.Row="2"
                    FontWeight="Bold"/>
 
-                    <TextBox x:Name="txtAclDest"
+                    <TextBox x:Name="txtAclOwner"
                  Grid.Row="3"
+                 Height="30"
+                 Margin="0,5,0,10"/>
+
+                    <!-- DEST LIST -->
+                    <TextBlock Text="Lista IP (ENTER / przecinki):"
+                   Grid.Row="4"
+                   FontWeight="Bold"/>
+
+                    <TextBox x:Name="txtAclDest"
+                 Grid.Row="5"
                  Height="120"
                  AcceptsReturn="True"
                  VerticalScrollBarVisibility="Auto"
@@ -365,7 +376,7 @@
                  Margin="0,5,0,10"/>
 
                     <!-- BUTTON -->
-                    <StackPanel Grid.Row="4"
+                    <StackPanel Grid.Row="6"
             Orientation="Horizontal"
             Margin="0,5,0,0">
 
@@ -385,13 +396,13 @@
                     </StackPanel>
 
                     <TextBlock Text="Output Cisco:"
-                Grid.Row="5"
+                Grid.Row="7"
                 FontWeight="Bold"/>
-                    
+
 
                     <!-- OUTPUT -->
                     <TextBox x:Name="txtAclOutput"
-                 Grid.Row="6"
+                 Grid.Row="8"
                  Margin="0,10,0,0"
                  AcceptsReturn="True"
                  VerticalScrollBarVisibility="Auto"
@@ -869,6 +880,15 @@
                             <Paragraph>
                                 <Bold>Przycisk Generuj ACL:</Bold>
                                 generuje pełną konfigurację Cisco (conf t, ACL, resequence, zapis).
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Pole Osoba (remark):</Bold>
+                                opcjonalne imię i nazwisko do opisania bloku wpisów
+                                (jak w cisco-acl-helper). Przed wpisami permit pojawi się
+                                <Italic>remark Osoba</Italic> , a za nimi
+                                <Italic>remark Osoba (koniec)</Italic> .
+                                Puste pole oznacza brak remarków.
                             </Paragraph>
 
                             <Paragraph>

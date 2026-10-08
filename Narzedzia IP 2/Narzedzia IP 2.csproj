@@ -80,6 +80,7 @@
     </Compile>
     <Compile Include="App.Update.cs" />
     <Compile Include="AclWildcard.cs" />
+    <Compile Include="AclRemark.cs" />
     <Compile Include="IpSelection.cs" />
     <Compile Include="BootUpdateWindow.xaml.cs">
       <DependentUpon>BootUpdateWindow.xaml</DependentUpon>

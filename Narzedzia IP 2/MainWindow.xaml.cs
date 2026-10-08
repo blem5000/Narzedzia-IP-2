@@ -997,6 +997,14 @@ Write-Output 'NOTFOUND'
                     return;
                 }
 
+                // ===== OSOBA (remark jak w cisco-acl-helper) =====
+                string owner = string.Empty;
+                string ownerEnd = string.Empty;
+                try { owner = AclRemark.CleanOwner(txtAclOwner.Text); }
+                catch { owner = string.Empty; }
+                try { ownerEnd = AclRemark.EndMark(owner); }
+                catch { ownerEnd = string.Empty; }
+
                 // ===== SUBNET CHECK =====
                 bool InSubnet(string ip, string net, string mask)
                 {
@@ -1018,6 +1026,19 @@ Write-Output 'NOTFOUND'
                     do { seq++; }
                     while (seq % 10 == 0);
                     return seq;
+                }
+
+                // ===== REMARK ALLOC (numerowane jak wpisy permit) =====
+                string TakeRemark(ref int seq)
+                {
+                    seq = NextSeq(seq);
+                    return seq + " remark " + owner;
+                }
+
+                string TakeRemarkEnd(ref int seq)
+                {
+                    seq = NextSeq(seq);
+                    return seq + " remark " + ownerEnd;
                 }
 
                 // ===== PODZIAŁ =====
@@ -1048,6 +1069,9 @@ Write-Output 'NOTFOUND'
 
                     sb.AppendLine($"ip access-list extended {inAcl1}");
 
+                    if (!string.IsNullOrEmpty(owner))
+                        sb.AppendLine(TakeRemark(ref seqIn));
+
                     foreach (var b in blocks)
                     {
                         seqIn = NextSeq(seqIn);
@@ -1057,6 +1081,9 @@ Write-Output 'NOTFOUND'
                         else
                             sb.AppendLine($"{seqIn} permit ip {b.Network} {b.Wildcard} host {sourceIP}");
                     }
+
+                    if (!string.IsNullOrEmpty(ownerEnd))
+                        sb.AppendLine(TakeRemarkEnd(ref seqIn));
 
                     sb.AppendLine($"ip access-list extended {outAcl1}");
 
@@ -1070,6 +1097,9 @@ Write-Output 'NOTFOUND'
                             sb.AppendLine($"{seqOut} permit ip host {sourceIP} {b.Network} {b.Wildcard}");
                     }
 
+                    if (!string.IsNullOrEmpty(ownerEnd))
+                        sb.AppendLine(TakeRemarkEnd(ref seqOut));
+
                     sb.AppendLine();
                 }
 
@@ -1080,6 +1110,9 @@ Write-Output 'NOTFOUND'
 
                     sb.AppendLine($"ip access-list extended {inAcl2}");
 
+                    if (!string.IsNullOrEmpty(owner))
+                        sb.AppendLine(TakeRemark(ref seqIn));
+
                     foreach (var b in blocks)
                     {
                         seqIn = NextSeq(seqIn);
@@ -1089,6 +1122,9 @@ Write-Output 'NOTFOUND'
                         else
                             sb.AppendLine($"{seqIn} permit ip {b.Network} {b.Wildcard} host {sourceIP}");
                     }
+
+                    if (!string.IsNullOrEmpty(ownerEnd))
+                        sb.AppendLine(TakeRemarkEnd(ref seqIn));
 
                     sb.AppendLine($"ip access-list extended {outAcl2}");
 
@@ -1101,6 +1137,9 @@ Write-Output 'NOTFOUND'
                         else
                             sb.AppendLine($"{seqOut} permit ip host {sourceIP} {b.Network} {b.Wildcard}");
                     }
+
+                    if (!string.IsNullOrEmpty(ownerEnd))
+                        sb.AppendLine(TakeRemarkEnd(ref seqOut));
 
                     sb.AppendLine();
                 }
