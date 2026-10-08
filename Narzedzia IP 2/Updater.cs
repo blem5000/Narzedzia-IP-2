@@ -497,6 +497,77 @@ namespace NarzedziaIP
             return staging;
         }
 
+        // Weryfikacja paczki PRZED kopiowaniem: wymagany główny exe oraz
+        // zakaz niespodziewanych plików wykonywalnych/skryptów. Dozwolone:
+        // docelowy exe, updater, .dll, .config, .pdb, .xml, .txt.
+        // Rzuca InvalidOperationException z listą problemów.
+        public static void ValidatePackageFiles(string sourceDir, string targetExeName)
+        {
+            if (string.IsNullOrWhiteSpace(sourceDir) || !Directory.Exists(sourceDir))
+                throw new InvalidOperationException("Brak katalogu paczki: " + sourceDir);
+
+            string[] files;
+            try
+            {
+                files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Nie można odczytać paczki: " + ex.Message, ex);
+            }
+
+            HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string f in files)
+                names.Add(Path.GetFileName(f));
+
+            if (string.IsNullOrWhiteSpace(targetExeName) || !names.Contains(targetExeName))
+                throw new InvalidOperationException("Paczka nie zawiera wymaganego pliku: " + targetExeName);
+
+            HashSet<string> allowedExe = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            allowedExe.Add(targetExeName);
+            allowedExe.Add(UpdaterExeName);
+            HashSet<string> allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            allowedExt.Add(".dll");
+            allowedExt.Add(".config");
+            allowedExt.Add(".pdb");
+            allowedExt.Add(".xml");
+            allowedExt.Add(".txt");
+
+            List<string> bad = new List<string>();
+            foreach (string f in files)
+            {
+                string ext = Path.GetExtension(f) ?? string.Empty;
+                string name = Path.GetFileName(f);
+                if (string.Equals(ext, ".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!allowedExe.Contains(name))
+                        bad.Add(RelativeTo(sourceDir, f));
+                }
+                else if (!allowedExt.Contains(ext))
+                {
+                    bad.Add(RelativeTo(sourceDir, f));
+                }
+            }
+
+            if (bad.Count > 0)
+                throw new InvalidOperationException(
+                    "Paczka zawiera niedozwolone pliki: " + string.Join(", ", bad));
+        }
+
+        private static string RelativeTo(string root, string full)
+        {
+            try
+            {
+                string rel = full.Substring(root.Length)
+                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                return string.IsNullOrWhiteSpace(rel) ? full : rel;
+            }
+            catch
+            {
+                return full;
+            }
+        }
+
         public static void CopyTree(string src, string dst, IEnumerable<string> excludeNames, IProgress<DownloadProgress> progress, int retries)
         {
             HashSet<string> excluded = new HashSet<string>(excludeNames ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);

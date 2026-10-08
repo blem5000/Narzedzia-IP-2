@@ -195,6 +195,10 @@ namespace NarzedziaIPUpdater
             string src = global::NarzedziaIP.Updater.ResolveSource(staging, exeName);
             Log("source dir: " + src);
 
+            Log("validating package...");
+            global::NarzedziaIP.Updater.ValidatePackageFiles(src, exeName);
+            Log("package ok");
+
             Log("copying -> " + targetDir);
             global::NarzedziaIP.Updater.CopyTree(src, targetDir, global::NarzedziaIP.Updater.PreservedFiles,
                 new Progress<global::NarzedziaIP.DownloadProgress>(

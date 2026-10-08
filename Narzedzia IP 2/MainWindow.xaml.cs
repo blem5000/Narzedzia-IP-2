@@ -27,8 +27,11 @@ namespace NarzedziaIP
         private readonly List<string> niePoprawnyIP = new List<string>();
         private readonly List<string> niePoprawnyMAC = new List<string>();
 
+        private readonly List<DhcpLease> _activeLeases = new List<DhcpLease>();
+
         private readonly DispatcherTimer pingTimer = new DispatcherTimer();
         private readonly List<string> pingIPs = new List<string>();
+        private int _pingIndex;
 
         private DispatcherTimer _dhcpTypingTimer = new DispatcherTimer();
 
@@ -82,17 +85,39 @@ namespace NarzedziaIP
 
         private void btnCopyIP_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(lblIP.Text))
+            string ip = ResolveActiveIp();
+            if (!string.IsNullOrWhiteSpace(ip))
             {
-                Clipboard.SetText(lblIP.Text);
+                Clipboard.SetText(ip);
+                return;
+            }
+
+            if (DistinctActiveIpCount() > 1)
+            {
+                MessageBox.Show(
+                    "Wybierz jeden adres IP z listy.",
+                    "Kopiuj IP",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
         }
 
         private void btnCopyMAC_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(lblMAC.Text))
+            string mac = ResolveActiveMac();
+            if (!string.IsNullOrWhiteSpace(mac))
             {
-                Clipboard.SetText(lblMAC.Text.Replace("-", ""));
+                Clipboard.SetText(mac.Replace("-", ""));
+                return;
+            }
+
+            if (DistinctActiveIpCount() > 1)
+            {
+                MessageBox.Show(
+                    "Wybierz jeden adres z listy.",
+                    "Kopiuj MAC",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
         }
 
@@ -147,6 +172,9 @@ namespace NarzedziaIP
             lblIP.Text = "";
             lblMAC.Text = "";
 
+            _activeLeases.Clear();
+            RefreshResultList();
+
             lblDnsWarning.Text = "";
             lblDnsWarning.Visibility = Visibility.Collapsed;
 
@@ -155,6 +183,71 @@ namespace NarzedziaIP
             btnMSRA.IsEnabled = false;
 
             txtHostname.Focus();
+        }
+
+        private void RefreshResultList()
+        {
+            try
+            {
+                lstResults.ItemsSource = null;
+                lstResults.ItemsSource = _activeLeases
+                    .Select(l => l.IPAddress + "  " + l.MacAddress)
+                    .ToList();
+                lstResults.SelectedIndex = _activeLeases.Count == 1 ? 0 : -1;
+            }
+            catch { }
+        }
+
+        private string SelectedLeaseIp()
+        {
+            try
+            {
+                int i = lstResults.SelectedIndex;
+                if (i >= 0 && i < _activeLeases.Count)
+                    return _activeLeases[i].IPAddress;
+            }
+            catch { }
+            return null;
+        }
+
+        private string SelectedLeaseMac()
+        {
+            try
+            {
+                int i = lstResults.SelectedIndex;
+                if (i >= 0 && i < _activeLeases.Count)
+                    return _activeLeases[i].MacAddress;
+            }
+            catch { }
+            return null;
+        }
+
+        private string ResolveActiveIp()
+        {
+            List<string> actives;
+            try { actives = _activeLeases.Select(l => l.IPAddress).ToList(); }
+            catch { actives = new List<string>(); }
+            string direct = null;
+            try { direct = lblIP.Text; }
+            catch { direct = null; }
+            return IpSelection.ResolveActiveIp(actives, SelectedLeaseIp(), direct);
+        }
+
+        private string ResolveActiveMac()
+        {
+            string m = SelectedLeaseMac();
+            if (!string.IsNullOrWhiteSpace(m))
+                return m;
+            List<string> macs;
+            try { macs = _activeLeases.Select(l => l.MacAddress).Distinct().ToList(); }
+            catch { macs = new List<string>(); }
+            return macs.Count == 1 ? macs[0] : null;
+        }
+
+        private int DistinctActiveIpCount()
+        {
+            try { return _activeLeases.Select(l => l.IPAddress).Distinct().Count(); }
+            catch { return 0; }
         }
 
         // ============================================================
@@ -176,6 +269,9 @@ namespace NarzedziaIP
             {
                 lblIP.Text = hostname;
                 lblMAC.Text = "Nie dotyczy - wpisano adres IP";
+
+                _activeLeases.Clear();
+                RefreshResultList();
 
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
@@ -211,8 +307,12 @@ namespace NarzedziaIP
                 {
                     lblIP.Text = "Brak adresu IP w DHCP";
                     lblMAC.Text = "Brak adresu MAC w DHCP";
+                    _activeLeases.Clear();
+                    RefreshResultList();
                     return;
                 }
+
+                List<DhcpLease> active = new List<DhcpLease>();
 
                 foreach (DhcpLease lease in leases)
                 {
@@ -222,6 +322,7 @@ namespace NarzedziaIP
                     {
                         poprawnyIP.Add(lease.IPAddress);
                         poprawnyMAC.Add(lease.MacAddress);
+                        active.Add(lease);
                     }
                     else
                     {
@@ -234,6 +335,10 @@ namespace NarzedziaIP
                 {
                     lblIP.Text = string.Join(", ", poprawnyIP.Distinct());
                     lblMAC.Text = string.Join(", ", poprawnyMAC.Distinct());
+
+                    _activeLeases.Clear();
+                    _activeLeases.AddRange(active);
+                    RefreshResultList();
 
                     txtHistoria.AppendText(
                         $"{hostname}\t{lblIP.Text}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -251,6 +356,9 @@ namespace NarzedziaIP
                 {
                     lblIP.Text = "Nie znaleziono aktywnego IP";
                     lblMAC.Text = "Nie znaleziono aktywnego MAC";
+
+                    _activeLeases.Clear();
+                    RefreshResultList();
 
                     if (niePoprawnyIP.Count > 0)
                     {
@@ -320,12 +428,6 @@ namespace NarzedziaIP
             }
 
             await SzukajHostnameAsync();
-
-            if (string.IsNullOrWhiteSpace(lblIP.Text))
-                return;
-
-            if (!IsIPv4Address(lblIP.Text))
-                return;
 
             StartMSRA();
         }
@@ -480,6 +582,7 @@ foreach ($scope in $scopes) {{
         {
             pingTimer.Stop();
             pingIPs.Clear();
+            _pingIndex = 0;
 
             string hostname = txtHostname2.Text.Trim();
 
@@ -579,7 +682,7 @@ foreach ($scope in $scopes) {{
                 return;
             }
 
-            string ip = pingIPs.First();
+            string ip = pingIPs[_pingIndex++ % pingIPs.Count];
 
             _pingBusy = true;
 
@@ -621,15 +724,10 @@ foreach ($scope in $scopes) {{
 
         private void StartMSRA()
         {
-            string ip = lblIP.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(ip))
-                return;
-
-            if (ip.Contains(","))
+            if (DistinctActiveIpCount() > 1 && string.IsNullOrWhiteSpace(SelectedLeaseIp()))
             {
                 MessageBox.Show(
-                    "Znaleziono więcej niż jeden adres IP. Skopiuj właściwy adres ręcznie lub dopracujemy wybór z listy.",
+                    "Znaleziono więcej niż jeden aktywny adres IP. Wybierz jeden z listy.",
                     "MSRA",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information
@@ -637,6 +735,11 @@ foreach ($scope in $scopes) {{
 
                 return;
             }
+
+            string ip = ResolveActiveIp();
+
+            if (string.IsNullOrWhiteSpace(ip))
+                return;
 
             if (!IsIPv4Address(ip))
             {
@@ -877,22 +980,22 @@ Write-Output 'NOTFOUND'
                     return;
                 }
 
-                // ===== SUBNETY =====
-                string subnet1Net = "10.202.130.0";
-                string subnet1Mask = "255.255.254.0";
-
-                string subnet2Net = "10.207.156.0";
-                string subnet2Mask = "255.255.254.0";
-
-                // ===== ACL NAZWY =====
-                string inAcl1 = "ACL-BCS2-IN-VLAN130";
-                string outAcl1 = "ACL-BCS2-OUT-VLAN130";
-
-                string inAcl2 = "ACL-BCS-IN";
-                string outAcl2 = "ACL-BCS-OUT";
-
-                int seqIn = 540;
-                int seqOut = 530;
+                // ===== SUBNETY / NAZWY / SEQ z zakładki Ustawienia =====
+                string subnet1Net;
+                string subnet1Mask;
+                string subnet2Net;
+                string subnet2Mask;
+                string inAcl1;
+                string outAcl1;
+                string inAcl2;
+                string outAcl2;
+                int seqIn;
+                int seqOut;
+                if (!TryReadAclSettings(out subnet1Net, out subnet1Mask, out subnet2Net, out subnet2Mask,
+                    out inAcl1, out outAcl1, out inAcl2, out outAcl2, out seqIn, out seqOut))
+                {
+                    return;
+                }
 
                 // ===== SUBNET CHECK =====
                 bool InSubnet(string ip, string net, string mask)
@@ -932,10 +1035,10 @@ Write-Output 'NOTFOUND'
 
                 sb.AppendLine("conf t");
 
-                sb.AppendLine("ip access-list resequence ACL-BCS2-IN-VLAN130 10 10");
-                sb.AppendLine("ip access-list resequence ACL-BCS2-OUT-VLAN130 10 10");
-                sb.AppendLine("ip access-list resequence ACL-BCS-IN 10 10");
-                sb.AppendLine("ip access-list resequence ACL-BCS-OUT 10 10");
+                sb.AppendLine("ip access-list resequence " + inAcl1 + " 10 10");
+                sb.AppendLine("ip access-list resequence " + outAcl1 + " 10 10");
+                sb.AppendLine("ip access-list resequence " + inAcl2 + " 10 10");
+                sb.AppendLine("ip access-list resequence " + outAcl2 + " 10 10");
                 sb.AppendLine();
 
                 // ===== SUBNET 1 =====
@@ -1003,10 +1106,10 @@ Write-Output 'NOTFOUND'
                 }
 
                 // ===== RESEQUENCE =====
-                sb.AppendLine("ip access-list resequence ACL-BCS2-IN-VLAN130 10 10");
-                sb.AppendLine("ip access-list resequence ACL-BCS2-OUT-VLAN130 10 10");
-                sb.AppendLine("ip access-list resequence ACL-BCS-IN 10 10");
-                sb.AppendLine("ip access-list resequence ACL-BCS-OUT 10 10");
+                sb.AppendLine("ip access-list resequence " + inAcl1 + " 10 10");
+                sb.AppendLine("ip access-list resequence " + outAcl1 + " 10 10");
+                sb.AppendLine("ip access-list resequence " + inAcl2 + " 10 10");
+                sb.AppendLine("ip access-list resequence " + outAcl2 + " 10 10");
 
                 sb.AppendLine("end");
                 sb.AppendLine("wr");
@@ -1023,6 +1126,92 @@ Write-Output 'NOTFOUND'
                 btnGenerateAcl.IsEnabled = true;
             }
 
+        }
+
+        private void LoadAclSettings()
+        {
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                txtAclSubnet1Net.Text = s.AclSubnet1Net;
+                txtAclSubnet1Mask.Text = s.AclSubnet1Mask;
+                txtAclSubnet2Net.Text = s.AclSubnet2Net;
+                txtAclSubnet2Mask.Text = s.AclSubnet2Mask;
+                txtAclIn1.Text = s.AclIn1;
+                txtAclOut1.Text = s.AclOut1;
+                txtAclIn2.Text = s.AclIn2;
+                txtAclOut2.Text = s.AclOut2;
+                txtAclSeqIn.Text = s.AclSeqIn.ToString();
+                txtAclSeqOut.Text = s.AclSeqOut.ToString();
+            }
+            catch { }
+        }
+
+        private bool TryReadAclSettings(out string subnet1Net, out string subnet1Mask,
+            out string subnet2Net, out string subnet2Mask,
+            out string inAcl1, out string outAcl1, out string inAcl2, out string outAcl2,
+            out int seqIn, out int seqOut)
+        {
+            subnet1Net = subnet1Mask = subnet2Net = subnet2Mask = null;
+            inAcl1 = outAcl1 = inAcl2 = outAcl2 = null;
+            seqIn = seqOut = 0;
+            try
+            {
+                subnet1Net = txtAclSubnet1Net.Text.Trim();
+                subnet1Mask = txtAclSubnet1Mask.Text.Trim();
+                subnet2Net = txtAclSubnet2Net.Text.Trim();
+                subnet2Mask = txtAclSubnet2Mask.Text.Trim();
+                inAcl1 = txtAclIn1.Text.Trim();
+                outAcl1 = txtAclOut1.Text.Trim();
+                inAcl2 = txtAclIn2.Text.Trim();
+                outAcl2 = txtAclOut2.Text.Trim();
+                string seqInText = txtAclSeqIn.Text.Trim();
+                string seqOutText = txtAclSeqOut.Text.Trim();
+
+                if (!IsIPv4Address(subnet1Net) || !AclWildcard.IsContiguousMask(subnet1Mask))
+                {
+                    MessageBox.Show("Niepoprawna podsieć 1 (adres sieci lub maska).");
+                    return false;
+                }
+                if (!IsIPv4Address(subnet2Net) || !AclWildcard.IsContiguousMask(subnet2Mask))
+                {
+                    MessageBox.Show("Niepoprawna podsieć 2 (adres sieci lub maska).");
+                    return false;
+                }
+                foreach (string n in new[] { inAcl1, outAcl1, inAcl2, outAcl2 })
+                {
+                    if (string.IsNullOrWhiteSpace(n) || n.Any(char.IsWhiteSpace))
+                    {
+                        MessageBox.Show("Nazwy ACL nie mogą być puste ani zawierać spacji.");
+                        return false;
+                    }
+                }
+                if (!int.TryParse(seqInText, out seqIn) || seqIn <= 0
+                    || !int.TryParse(seqOutText, out seqOut) || seqOut <= 0)
+                {
+                    MessageBox.Show("Numery SEQ muszą być dodatnimi liczbami.");
+                    return false;
+                }
+
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                s.AclSubnet1Net = subnet1Net;
+                s.AclSubnet1Mask = subnet1Mask;
+                s.AclSubnet2Net = subnet2Net;
+                s.AclSubnet2Mask = subnet2Mask;
+                s.AclIn1 = inAcl1;
+                s.AclOut1 = outAcl1;
+                s.AclIn2 = inAcl2;
+                s.AclOut2 = outAcl2;
+                s.AclSeqIn = seqIn;
+                s.AclSeqOut = seqOut;
+                s.Save();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Błąd ustawień ACL:\n\n" + ex.Message);
+                return false;
+            }
         }
 
         private void BtnCopyAcl_Click(object sender, RoutedEventArgs e)

@@ -270,4 +270,79 @@ namespace NarzedziaIP.Tests
                 "kopiowanie nie usuwa plików spoza paczki (jak robocopy bez /PURGE)");
         }
     }
+
+    [TestClass]
+    public class UpdaterPackageTests
+    {
+        private string _tmp;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            _tmp = Path.Combine(Path.GetTempPath(), "narz_pkg_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_tmp);
+        }
+
+        [TestCleanup]
+        public void Teardown()
+        {
+            try { Directory.Delete(_tmp, true); }
+            catch { }
+        }
+
+        private string Pkg(params string[] names)
+        {
+            string dir = Path.Combine(_tmp, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            foreach (string n in names)
+            {
+                string full = Path.Combine(dir, n);
+                Directory.CreateDirectory(Path.GetDirectoryName(full));
+                File.WriteAllText(full, "x");
+            }
+            return dir;
+        }
+
+        [TestMethod]
+        public void ValidPackagePasses()
+        {
+            string dir = Pkg("app.exe", Updater.UpdaterExeName, "app.exe.config", "lib.dll", "notes.txt");
+            Updater.ValidatePackageFiles(dir, "app.exe");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void MissingTargetThrows()
+        {
+            Updater.ValidatePackageFiles(Pkg(Updater.UpdaterExeName), "app.exe");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void ScriptFileThrows()
+        {
+            Updater.ValidatePackageFiles(Pkg("app.exe", "run.ps1"), "app.exe");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void UnexpectedExeThrows()
+        {
+            Updater.ValidatePackageFiles(Pkg("app.exe", "evil.exe"), "app.exe");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void ExtensionlessFileThrows()
+        {
+            Updater.ValidatePackageFiles(Pkg("app.exe", "README"), "app.exe");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void NestedScriptThrows()
+        {
+            Updater.ValidatePackageFiles(Pkg("app.exe", "sub\\evil.bat"), "app.exe");
+        }
+    }
 }

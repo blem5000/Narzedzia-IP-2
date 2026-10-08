@@ -22,6 +22,7 @@ namespace NarzedziaIP
             {
             }
 
+            LoadAclSettings();
             BeginDhcpBackgroundCheck();
 
             // Post-startup fallback: the boot check found an update but could

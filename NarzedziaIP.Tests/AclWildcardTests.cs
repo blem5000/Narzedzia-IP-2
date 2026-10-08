@@ -108,5 +108,23 @@ namespace NarzedziaIP.Tests
             Assert.AreEqual("10.202.130.7", AclWildcard.UintToIP(AclWildcard.IPToUint("10.202.130.7")));
             Assert.AreEqual(0x0ACB9C01u, AclWildcard.IPToUint("10.203.156.1"));
         }
+
+        [DataTestMethod]
+        [DataRow("255.255.255.0", true)]
+        [DataRow("255.255.254.0", true)]
+        [DataRow("255.255.0.0", true)]
+        [DataRow("255.0.0.0", true)]
+        [DataRow("0.0.0.0", true)]
+        [DataRow("255.255.255.255", true)]
+        [DataRow("255.0.255.0", false)]
+        [DataRow("1.2.3.4", false)]
+        [DataRow("abc", false)]
+        [DataRow("", false)]
+        [DataRow(null, false)]
+        [DataRow("::1", false)]
+        public void ContiguousMaskCheck(string mask, bool expected)
+        {
+            Assert.AreEqual(expected, AclWildcard.IsContiguousMask(mask));
+        }
     }
 }

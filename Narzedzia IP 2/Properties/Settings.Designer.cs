@@ -71,5 +71,155 @@ namespace Narzedzia_IP_2.Properties
                 this["DhcpServer"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10.202.130.0")]
+        public string AclSubnet1Net
+        {
+            get
+            {
+                return ((string)(this["AclSubnet1Net"]));
+            }
+            set
+            {
+                this["AclSubnet1Net"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("255.255.254.0")]
+        public string AclSubnet1Mask
+        {
+            get
+            {
+                return ((string)(this["AclSubnet1Mask"]));
+            }
+            set
+            {
+                this["AclSubnet1Mask"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10.207.156.0")]
+        public string AclSubnet2Net
+        {
+            get
+            {
+                return ((string)(this["AclSubnet2Net"]));
+            }
+            set
+            {
+                this["AclSubnet2Net"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("255.255.254.0")]
+        public string AclSubnet2Mask
+        {
+            get
+            {
+                return ((string)(this["AclSubnet2Mask"]));
+            }
+            set
+            {
+                this["AclSubnet2Mask"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("ACL-BCS2-IN-VLAN130")]
+        public string AclIn1
+        {
+            get
+            {
+                return ((string)(this["AclIn1"]));
+            }
+            set
+            {
+                this["AclIn1"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("ACL-BCS2-OUT-VLAN130")]
+        public string AclOut1
+        {
+            get
+            {
+                return ((string)(this["AclOut1"]));
+            }
+            set
+            {
+                this["AclOut1"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("ACL-BCS-IN")]
+        public string AclIn2
+        {
+            get
+            {
+                return ((string)(this["AclIn2"]));
+            }
+            set
+            {
+                this["AclIn2"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("ACL-BCS-OUT")]
+        public string AclOut2
+        {
+            get
+            {
+                return ((string)(this["AclOut2"]));
+            }
+            set
+            {
+                this["AclOut2"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("540")]
+        public int AclSeqIn
+        {
+            get
+            {
+                return ((int)(this["AclSeqIn"]));
+            }
+            set
+            {
+                this["AclSeqIn"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("530")]
+        public int AclSeqOut
+        {
+            get
+            {
+                return ((int)(this["AclSeqOut"]));
+            }
+            set
+            {
+                this["AclSeqOut"] = value;
+            }
+        }
     }
 }

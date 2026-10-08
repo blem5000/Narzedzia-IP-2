@@ -13,5 +13,35 @@
     <Setting Name="DhcpServer" Type="System.String" Scope="User">
       <Value Profile="(Default)">150.150.222.20</Value>
     </Setting>
+    <Setting Name="AclSubnet1Net" Type="System.String" Scope="User">
+      <Value Profile="(Default)">10.202.130.0</Value>
+    </Setting>
+    <Setting Name="AclSubnet1Mask" Type="System.String" Scope="User">
+      <Value Profile="(Default)">255.255.254.0</Value>
+    </Setting>
+    <Setting Name="AclSubnet2Net" Type="System.String" Scope="User">
+      <Value Profile="(Default)">10.207.156.0</Value>
+    </Setting>
+    <Setting Name="AclSubnet2Mask" Type="System.String" Scope="User">
+      <Value Profile="(Default)">255.255.254.0</Value>
+    </Setting>
+    <Setting Name="AclIn1" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ACL-BCS2-IN-VLAN130</Value>
+    </Setting>
+    <Setting Name="AclOut1" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ACL-BCS2-OUT-VLAN130</Value>
+    </Setting>
+    <Setting Name="AclIn2" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ACL-BCS-IN</Value>
+    </Setting>
+    <Setting Name="AclOut2" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ACL-BCS-OUT</Value>
+    </Setting>
+    <Setting Name="AclSeqIn" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">540</Value>
+    </Setting>
+    <Setting Name="AclSeqOut" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">530</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -39,6 +39,23 @@ namespace NarzedziaIP
             return UintToIP(wild);
         }
 
+        // Czy maska IPv4 jest ciągła (jedynki potem zera)? Np. 255.255.254.0
+        // tak, 255.0.255.0 nie.
+        public static bool IsContiguousMask(string mask)
+        {
+            if (string.IsNullOrWhiteSpace(mask))
+                return false;
+            System.Net.IPAddress addr;
+            if (!System.Net.IPAddress.TryParse(mask.Trim(), out addr))
+                return false;
+            byte[] b = addr.GetAddressBytes();
+            if (b.Length != 4)
+                return false;
+            uint m = ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3];
+            uint inv = ~m;
+            return (inv & (inv + 1)) == 0;
+        }
+
         public static List<(string Network, string Wildcard)> MergeToWildcard(List<string> ips)
         {
             List<uint> ipInts = ips
