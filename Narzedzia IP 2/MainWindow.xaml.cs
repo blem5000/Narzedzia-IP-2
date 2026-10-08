@@ -20,7 +20,7 @@ namespace NarzedziaIP
     {
         private const string DefaultDhcpIp = "150.150.222.20";
 
-        private readonly string _dhcpIp;
+        private string _dhcpIp;
 
         private readonly List<string> poprawnyIP = new List<string>();
         private readonly List<string> poprawnyMAC = new List<string>();
@@ -45,7 +45,7 @@ namespace NarzedziaIP
                 ? DefaultDhcpIp
                 : dhcpIp.Trim();
 
-            Title = $"Narzedzia IP - DHCP: {_dhcpIp}";
+            SetTitleSuffix("trwa sprawdzanie dhcp");
 
             Loaded += MainWindow_Loaded;
 

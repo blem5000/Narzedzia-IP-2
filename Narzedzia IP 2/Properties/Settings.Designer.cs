@@ -56,5 +56,20 @@ namespace Narzedzia_IP_2.Properties
                 this["UpdateSkipped"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("150.150.222.20")]
+        public string DhcpServer
+        {
+            get
+            {
+                return ((string)(this["DhcpServer"]));
+            }
+            set
+            {
+                this["DhcpServer"] = value;
+            }
+        }
     }
 }

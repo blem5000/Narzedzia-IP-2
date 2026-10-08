@@ -22,6 +22,8 @@ namespace NarzedziaIP
             {
             }
 
+            BeginDhcpBackgroundCheck();
+
             // Post-startup fallback: the boot check found an update but could
             // not install it silently (e.g. updater exe missing) - offer it now.
             ReleaseInfo pending = BootUpdate.Pending;

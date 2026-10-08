@@ -8,13 +8,6 @@ namespace NarzedziaIP
         {
             base.OnStartup(e);
 
-            // Prevent WPF from shutting down when the first dialog window closes.
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-            // Silent self-update check (like cisco-acl-helper boot check).
-            // When a newer GitHub release is downloaded, the GUI updater
-            // takes over - just exit here. Sync wrapper: network runs on a
-            // threadpool thread, dialog (if any) on the UI thread.
             bool updated = BootUpdate.TrySilentUpdate();
             if (updated)
             {
@@ -22,26 +15,17 @@ namespace NarzedziaIP
                 return;
             }
 
-            DhcpWindow dhcpWindow = new DhcpWindow();
+            // Start od razu, bez blokującego okienka: DHCP sprawdzany jest
+            // w tle przez MainWindow (status widać w pasku tytułu).
+            string dhcpIp;
+            try { dhcpIp = global::Narzedzia_IP_2.Properties.Settings.Default.DhcpServer; }
+            catch { dhcpIp = null; }
 
-            bool? result = dhcpWindow.ShowDialog();
+            MainWindow mainWindow = new MainWindow(dhcpIp);
 
-            if (result == true)
-            {
-                MainWindow mainWindow = new MainWindow(dhcpWindow.DhcpIp);
-
-                // Set real main window
-                MainWindow = mainWindow;
-
-                // From now on, close the application when MainWindow closes
-                ShutdownMode = ShutdownMode.OnMainWindowClose;
-
-                mainWindow.Show();
-            }
-            else
-            {
-                Shutdown();
-            }
+            MainWindow = mainWindow;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+            mainWindow.Show();
         }
     }
 }

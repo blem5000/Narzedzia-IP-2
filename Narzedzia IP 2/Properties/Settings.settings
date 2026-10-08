@@ -10,5 +10,8 @@
     <Setting Name="UpdateSkipped" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="DhcpServer" Type="System.String" Scope="User">
+      <Value Profile="(Default)">150.150.222.20</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

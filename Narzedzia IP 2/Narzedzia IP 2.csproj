@@ -69,10 +69,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="DhcpWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -86,6 +82,9 @@
     <Compile Include="BootUpdateWindow.xaml.cs">
       <DependentUpon>BootUpdateWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MainWindow.Dhcp.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="MainWindow.Update.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
@@ -93,9 +92,6 @@
       <DependentUpon>UpdateDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="Updater.cs" />
-    <Compile Include="DhcpWindow.xaml.cs">
-      <DependentUpon>DhcpWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

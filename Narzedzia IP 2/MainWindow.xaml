@@ -395,14 +395,68 @@
                 </Grid>
             </TabItem>
 
-            <TabItem x:Name="tabHelp" Header="Instrukcja">
+            <TabItem x:Name="tabSettings" Header="Ustawienia">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
+
+                    <TextBlock Text="Serwer DHCP:"
+                               FontWeight="Bold"
+                               Grid.Row="0"
+                               Margin="0,0,0,5"/>
+
+                    <StackPanel Grid.Row="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBox x:Name="txtDhcpServer"
+                                 Width="220"
+                                 Height="31"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,10,0"/>
+                        <Button x:Name="btnTestDhcp"
+                                Content="Sprawdź"
+                                Width="120"
+                                Height="32"
+                                Click="btnTestDhcp_Click"/>
+                        <TextBlock x:Name="lblDhcpServerStatus"
+                                   VerticalAlignment="Center"
+                                   Margin="15,0,0,0"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="3"
+                            BorderThickness="1"
+                            BorderBrush="#CCCCCC"
+                            Padding="10">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="lblAppVersion"
+                                       Text="Wersja: ..."
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"/>
+                            <CheckBox x:Name="chkUpdateAuto"
+                                      Content="Automatyczne sprawdzanie aktualizacji"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,15,0"
+                                      Checked="chkUpdateAuto_Checked"
+                                      Unchecked="chkUpdateAuto_Unchecked"/>
+                            <Button x:Name="btnCheckUpdate"
+                                    Content="Sprawdź aktualizacje"
+                                    Width="170"
+                                    Height="32"
+                                    Click="btnCheckUpdate_Click"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="tabHelp" Header="Instrukcja">
+                <Grid Margin="10">
                     <RichTextBox x:Name="rtbManual"
-                                 Grid.Row="0"
                      IsReadOnly="True"
                      VerticalScrollBarVisibility="Auto"
                      FontFamily="Segoe UI"
@@ -422,33 +476,25 @@
                             </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
-                                1. Uruchomienie programu i wybór serwera DHCP
+                                1. Uruchomienie programu i serwer DHCP
                             </Paragraph>
 
                             <Paragraph>
-                                Po uruchomieniu program automatycznie sprawdza domyślny serwer DHCP:
-                                <Bold>150.150.222.20</Bold> .
+                                Program startuje od razu - sprawdzanie serwera DHCP odbywa się w tle.
+                                W trakcie sprawdzania pasek tytułu pokazuje
+                                <Bold>- trwa sprawdzanie dhcp</Bold> .
+                                Gdy serwer odpowiada, napis znika.
+                                Gdy serwer jest niedostępny, tytuł pokazuje
+                                <Bold>- DHCP niedostępny</Bold> .
                             </Paragraph>
 
-                            <List>
-                                <ListItem>
-                                    <Paragraph>
-                                        Jeśli domyślny serwer DHCP odpowiada poprawnie, program automatycznie przechodzi do głównego okna.
-                                    </Paragraph>
-                                </ListItem>
-                                <ListItem>
-                                    <Paragraph>
-                                        Jeśli domyślny serwer DHCP nie odpowiada albo nie można pobrać zakresów DHCP,
-                            użytkownik może wpisać inny adres IP serwera DHCP.
-                                    </Paragraph>
-                                </ListItem>
-                                <ListItem>
-                                    <Paragraph>
-                                        Podany ręcznie adres DHCP jest sprawdzany po kliknięciu przycisku
-                                        <Bold>OK</Bold> .
-                                    </Paragraph>
-                                </ListItem>
-                            </List>
+                            <Paragraph>
+                                Domyślny serwer DHCP to
+                                <Bold>150.150.222.20</Bold> .
+                                Inny adres wpiszesz w zakładce
+                                <Bold>Ustawienia</Bold> i zweryfikujesz przyciskiem
+                                <Bold>Sprawdź</Bold> .
+                            </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
                                 2. Zakładka: Hostname do DHCP
@@ -785,7 +831,7 @@
                             </Paragraph>
 
                             <Paragraph>
-                                W dolnej części tej zakładki widać numer wersji,
+                                W zakładce <Bold>Ustawienia</Bold> widać numer wersji,
                                 przełącznik automatycznego sprawdzania oraz przycisk
                                 <Bold>Sprawdź aktualizacje</Bold> do ręcznej kontroli.
                                 Przycisk <Bold>Pomiń tę wersję</Bold> wycisza powiadomienie
@@ -797,31 +843,6 @@
 
                         </FlowDocument>
                     </RichTextBox>
-
-                    <Border Grid.Row="1"
-                            Margin="0,10,0,0"
-                            BorderThickness="1"
-                            BorderBrush="#CCCCCC"
-                            Padding="10">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Name="lblAppVersion"
-                                       Text="Wersja: ..."
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,15,0"/>
-                            <CheckBox x:Name="chkUpdateAuto"
-                                      Content="Automatyczne sprawdzanie aktualizacji"
-                                      VerticalAlignment="Center"
-                                      Margin="0,0,15,0"
-                                      Checked="chkUpdateAuto_Checked"
-                                      Unchecked="chkUpdateAuto_Unchecked"/>
-                            <Button x:Name="btnCheckUpdate"
-                                    Content="Sprawdź aktualizacje"
-                                    Width="170"
-                                    Height="32"
-                                    Click="btnCheckUpdate_Click"/>
-                        </StackPanel>
-                    </Border>
                 </Grid>
             </TabItem>
         </TabControl>
