@@ -215,6 +215,51 @@ namespace NarzedziaIP
             btnStartPing.IsEnabled = true;
         }
 
+        private void btnExportHistory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(HistoryLog.DefaultLogPath()))
+                {
+                    MessageBox.Show(
+                        this,
+                        "Brak zapisanej historii.",
+                        "Eksport historii",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = "historia.csv",
+                    DefaultExt = ".csv",
+                    Filter = "CSV (*.csv)|*.csv|Wszystkie pliki (*.*)|*.*",
+                    OverwritePrompt = true
+                };
+
+                if (dlg.ShowDialog(this) == true)
+                {
+                    System.IO.File.Copy(HistoryLog.DefaultLogPath(), dlg.FileName, true);
+                    MessageBox.Show(
+                        this,
+                        "Zapisano historię do:\n" + dlg.FileName,
+                        "Eksport historii",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    "Nie udało się wyeksportować historii:\n\n" + ex.Message,
+                    "Eksport historii",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         // ============================================================
         // ENTER KEY EVENTS
         // ============================================================
@@ -365,6 +410,7 @@ namespace NarzedziaIP
                 );
 
                 txtHistoria.ScrollToEnd();
+                HistoryLog.Append("Szukaj", hostname, hostname, "Wpisano IP bez wyszukiwania DHCP");
 
                 return;
             }
@@ -429,6 +475,7 @@ namespace NarzedziaIP
                     );
 
                     txtHistoria.ScrollToEnd();
+                    HistoryLog.Append("Szukaj", hostname, lblIP.Text, string.Empty);
 
                     await CheckDnsVsDhcpAsync(hostname, poprawnyIP);
 
@@ -456,6 +503,7 @@ namespace NarzedziaIP
                         );
 
                         txtHistoria.ScrollToEnd();
+                        HistoryLog.Append("Szukaj", hostname, string.Empty, "Nieaktywne: " + string.Join(", ", niePoprawnyIP.Distinct()));
                     }
                 }
             }
@@ -469,6 +517,7 @@ namespace NarzedziaIP
                 );
 
                 txtHistoria.ScrollToEnd();
+                HistoryLog.Append("Szukaj", hostname, string.Empty, "Błąd DHCP: " + ex.Message);
 
                 MessageBox.Show(
                     ex.Message,
@@ -513,6 +562,7 @@ namespace NarzedziaIP
                 );
 
                 txtHistoria.ScrollToEnd();
+                HistoryLog.Append("MSRA", input, input, "Połączenie MSRA bez wyszukiwania DHCP");
 
                 StartMSRA();
                 return;
@@ -859,6 +909,7 @@ namespace NarzedziaIP
                     UseShellExecute = false
                 };
 
+                HistoryLog.Append("MSRA", ip, ip, string.Empty);
                 Process.Start(psi);
             }
             catch (Exception ex)
@@ -946,6 +997,7 @@ namespace NarzedziaIP
                     UseShellExecute = false
                 };
 
+                HistoryLog.Append("RDP", ip, ip, string.Empty);
                 Process.Start(psi);
             }
             catch (Exception ex)
@@ -1200,6 +1252,7 @@ namespace NarzedziaIP
                 {
                     txtHistoria.AppendText($"{host}\tTacticalRMM: {agent.AgentId}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}");
                     txtHistoria.ScrollToEnd();
+                    HistoryLog.Append("TacticalRMM", host, agent.AgentId, string.Empty);
                 }
                 catch { }
 
@@ -1844,6 +1897,7 @@ Write-Output 'NOTFOUND'
                 );
 
                 txtHistoria.ScrollToEnd();
+                HistoryLog.Append("DNS", hostname, string.Join(", ", dhcpIpList), "DNS różni się od DHCP. DNS: " + string.Join(", ", dnsIps));
             }
         }
     }

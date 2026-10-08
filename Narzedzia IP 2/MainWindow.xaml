@@ -210,13 +210,28 @@
                               Header="Historia"
                               Margin="10,90,0,0">
 
-                        <TextBox x:Name="txtHistoria"
-                                 AcceptsReturn="True"
-                                 AcceptsTab="True"
-                                 VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 IsReadOnly="True"
-                                 TextWrapping="NoWrap"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBox x:Name="txtHistoria"
+                                     Grid.Row="0"
+                                     AcceptsReturn="True"
+                                     AcceptsTab="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     IsReadOnly="True"
+                                     TextWrapping="NoWrap"/>
+
+                            <Button x:Name="btnExportHistory"
+                                    Grid.Row="1"
+                                    Content="Eksportuj historię..."
+                                    Height="30"
+                                    Margin="0,8,0,0"
+                                    Click="btnExportHistory_Click"/>
+                        </Grid>
                     </GroupBox>
                 </Grid>
             </TabItem>
@@ -758,6 +773,10 @@
                                 <Bold>Historia:</Bold>
                                 Pokazuje wykonane wyszukiwania wraz z datą i godziną.
                     Historia może również zawierać informacje o różnicy między DNS i DHCP.
+                                Każde wyszukiwanie i połączenie zapisywane jest też na dysk
+                                (profil użytkownika, plik historia.csv) -
+                                przyciskiem <Bold>Eksportuj historię</Bold> pod listą
+                                zapiszesz go w wybranym miejscu.
                             </Paragraph>
 
                             <Paragraph FontSize="16" FontWeight="Bold">
