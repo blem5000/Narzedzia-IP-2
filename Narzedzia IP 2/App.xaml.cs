@@ -23,6 +23,10 @@ namespace NarzedziaIP
             }
             catch { }
 
+            // Sprzątanie po rename-swap aktualizacji (np. *.old po instalacji z sharea).
+            try { Updater.CleanupOldBackups(Updater.AppDir()); }
+            catch { }
+
             bool updated = BootUpdate.TrySilentUpdate();
             if (updated)
             {

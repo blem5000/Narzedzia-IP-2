@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+; Szablon konfiguracji firmowej Narzedzia IP 2 (TacticalRMM).
+; Uzupełnij PRAWDZIWE wartości, zapisz np. jako TacticalRMM-config.reg
+; i połóż na share obok programu. Dwuklik (HKCU = bieżący użytkownik,
+; uprawnienia admina NIE są potrzebne).
+; Ten szablon NIE zawiera sekretów - nie commituj pliku z sekretami!
+
+[HKEY_CURRENT_USER\Software\NarzedziaIP2]
+"TacticalApiUrl"="https://api.TWOJA-DOMENA.local"
+"TacticalApiKey"="WSTAW-KLUCZ-API"
+"TacticalDashboardUrl"="https://rmm.TWOJA-DOMENA.local"

@@ -1024,6 +1024,27 @@
                                 wyszarzony z podpowiedzią.
                             </Paragraph>
 
+                            <Paragraph>
+                                Adresy można też rozdać centralnie przez rejestr
+                                (<Bold>HKCU\Software\NarzedziaIP2</Bold>):
+                                wartości <Italic>TacticalApiUrl</Italic>,
+                                <Italic>TacticalApiKey</Italic> i
+                                <Italic>TacticalDashboardUrl</Italic>
+                                wygrywają z ustawieniami z programu.
+                                Gotowy szablon to plik
+                                <Bold>TacticalRMM-config-TEMPLATE.reg</Bold>
+                                obok programu - uzupełnij, połóż na share
+                                i kliknij dwukrotnie (uprawnienia admina zbędne).
+                            </Paragraph>
+
+                            <Paragraph>
+                                Program może działać wprost z sharea sieciowego:
+                                przy aktualizacji działający plik jest odsuwany
+                                na bok (<Italic>*.old</Italic>), więc druga osoba
+                                może w tym czasie pracować na starej wersji,
+                                a resztki sprzątane są przy starcie.
+                            </Paragraph>
+
                         </FlowDocument>
                     </RichTextBox>
                 </Grid>

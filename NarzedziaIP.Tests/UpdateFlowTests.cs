@@ -345,4 +345,130 @@ namespace NarzedziaIP.Tests
             Updater.ValidatePackageFiles(Pkg("app.exe", "sub\\evil.bat"), "app.exe");
         }
     }
+
+    [TestClass]
+    public class UpdaterRenameTests
+    {
+        private string _tmp;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            _tmp = Path.Combine(Path.GetTempPath(), "narz_ren_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_tmp);
+        }
+
+        [TestCleanup]
+        public void Teardown()
+        {
+            try { Directory.Delete(_tmp, true); }
+            catch { }
+        }
+
+        [TestMethod]
+        public void MissingTargetRenamesTrivially()
+        {
+            Assert.IsTrue(Updater.TryRenameLockedFile(Path.Combine(_tmp, "nie-ma.exe")));
+            Assert.IsFalse(Updater.TryRenameLockedFile(null));
+            Assert.IsFalse(Updater.TryRenameLockedFile(""));
+        }
+
+        [TestMethod]
+        public void NormalCopyLeavesNoBackup()
+        {
+            string src = Path.Combine(_tmp, "src");
+            Directory.CreateDirectory(src);
+            File.WriteAllText(Path.Combine(src, "a.exe"), "new");
+            string dst = Path.Combine(_tmp, "dst");
+            Directory.CreateDirectory(dst);
+            File.WriteAllText(Path.Combine(dst, "a.exe"), "old");
+
+            Updater.CopyTree(src, dst, null, null, 1);
+
+            Assert.AreEqual("new", File.ReadAllText(Path.Combine(dst, "a.exe")));
+            Assert.IsFalse(File.Exists(Path.Combine(dst, "a.exe.old")));
+        }
+
+        [TestMethod]
+        public void LockedExeIsSwappedViaRename()
+        {
+            // Blokada jak mapowany obraz exe: zapis zabroniony, rename dozwolony.
+            // Bez rename-swap kopiowanie by rzuciło; po swapie jest nowa zawartość
+            // (backup *.old sprzątany jest przez CopyTree, więc sprawdzamy treść).
+            string src = Path.Combine(_tmp, "src");
+            Directory.CreateDirectory(src);
+            File.WriteAllText(Path.Combine(src, "app.exe"), "NEW-BINARY");
+            string dst = Path.Combine(_tmp, "dst");
+            Directory.CreateDirectory(dst);
+            string target = Path.Combine(dst, "app.exe");
+            File.WriteAllText(target, "OLD-BINARY");
+
+            using (FileStream locked = new FileStream(target, FileMode.Open,
+                FileAccess.Read, FileShare.Read | FileShare.Delete))
+            {
+                Updater.CopyTree(src, dst, null, null, 2);
+                Assert.AreEqual("NEW-BINARY", File.ReadAllText(target));
+            }
+
+            Updater.CleanupOldBackups(dst);
+            Assert.IsFalse(File.Exists(target + ".old"));
+        }
+
+        [TestMethod]
+        public void TryRenameMovesLockedFileAside()
+        {
+            string target = Path.Combine(_tmp, "app.exe");
+            File.WriteAllText(target, "OLD-BINARY");
+
+            using (FileStream locked = new FileStream(target, FileMode.Open,
+                FileAccess.Read, FileShare.Read | FileShare.Delete))
+            {
+                Assert.IsTrue(Updater.TryRenameLockedFile(target));
+                Assert.IsFalse(File.Exists(target));
+                Assert.AreEqual("OLD-BINARY", File.ReadAllText(target + ".old"));
+            }
+            File.Delete(target + ".old");
+        }
+
+        [TestMethod]
+        public void CleanupKeepsForeignOldFiles()
+        {
+            string dst = Path.Combine(_tmp, "dst");
+            Directory.CreateDirectory(dst);
+            File.WriteAllText(Path.Combine(dst, "app.exe"), "x");
+            File.WriteAllText(Path.Combine(dst, "app.exe.old"), "stare");
+            File.WriteAllText(Path.Combine(dst, "notatki.old"), "cudze");
+
+            Updater.CleanupOldBackups(dst);
+
+            Assert.IsFalse(File.Exists(Path.Combine(dst, "app.exe.old")));
+            Assert.IsTrue(File.Exists(Path.Combine(dst, "notatki.old")));
+        }
+
+        [TestMethod]
+        public void HardLockedFileStillThrows()
+        {
+            string src = Path.Combine(_tmp, "src");
+            Directory.CreateDirectory(src);
+            File.WriteAllText(Path.Combine(src, "app.exe"), "NEW");
+            string dst = Path.Combine(_tmp, "dst");
+            Directory.CreateDirectory(dst);
+            string target = Path.Combine(dst, "app.exe");
+            File.WriteAllText(target, "OLD");
+
+            using (FileStream locked = new FileStream(target, FileMode.Open,
+                FileAccess.ReadWrite, FileShare.None))
+            {
+                try
+                {
+                    Updater.CopyTree(src, dst, null, null, 1);
+                    Assert.Fail("miał rzucić");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    StringAssert.Contains(ex.Message, "app.exe");
+                }
+            }
+        }
+    }
 }

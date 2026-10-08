@@ -977,13 +977,7 @@ namespace NarzedziaIP
         {
             string apiUrl = null;
             string apiKey = null;
-            try
-            {
-                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
-                apiUrl = s.TacticalApiUrl;
-                apiKey = s.TacticalApiKey;
-            }
-            catch { }
+            GetEffectiveTactical(out apiUrl, out apiKey, out string _);
             if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey))
                 return; // brak konfiguracji - przycisk działa jak dotąd
 
@@ -1043,14 +1037,51 @@ namespace NarzedziaIP
             return null;
         }
 
+        private void GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl)
+        {
+            string setApi = null;
+            string setKey = null;
+            string setDash = null;
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                setApi = s.TacticalApiUrl;
+                setKey = s.TacticalApiKey;
+                setDash = s.TacticalDashboardUrl;
+            }
+            catch { }
+            CompanyConfig.TacticalConfig merged;
+            try
+            {
+                merged = CompanyConfig.Merge(CompanyConfig.ReadTactical(), new CompanyConfig.TacticalConfig
+                {
+                    ApiUrl = setApi,
+                    ApiKey = setKey,
+                    DashboardUrl = setDash
+                });
+            }
+            catch
+            {
+                merged = new CompanyConfig.TacticalConfig { ApiUrl = setApi, ApiKey = setKey, DashboardUrl = setDash };
+            }
+            apiUrl = merged.ApiUrl;
+            apiKey = merged.ApiKey;
+            dashUrl = merged.DashboardUrl;
+        }
+
         private void LoadTacticalSettings()
         {
             try
             {
-                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
-                txtTacticalApiUrl.Text = s.TacticalApiUrl;
-                txtTacticalApiKey.Password = s.TacticalApiKey;
-                txtTacticalDashboardUrl.Text = s.TacticalDashboardUrl;
+                GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl);
+                txtTacticalApiUrl.Text = apiUrl ?? string.Empty;
+                txtTacticalApiKey.Password = apiKey ?? string.Empty;
+                txtTacticalDashboardUrl.Text = dashUrl ?? string.Empty;
+                CompanyConfig.TacticalConfig reg = null;
+                try { reg = CompanyConfig.ReadTactical(); }
+                catch { reg = null; }
+                if (reg != null && reg.AnyPresent)
+                    SetTacticalStatus("Część ustawień pochodzi z rejestru (zarządzane centralnie).", Brushes.Gray);
             }
             catch { }
         }
@@ -1085,8 +1116,8 @@ namespace NarzedziaIP
             SetTacticalStatus("Sprawdzanie...", Brushes.Gray);
             try
             {
-                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
-                var agents = await TacticalRmm.GetAgentsAsync(s.TacticalApiUrl, s.TacticalApiKey, 15);
+                GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl);
+                var agents = await TacticalRmm.GetAgentsAsync(apiUrl, apiKey, 15);
                 SetTacticalStatus($"OK: {agents.Count} agentów.", Brushes.Green);
             }
             catch (Exception ex)
@@ -1116,14 +1147,7 @@ namespace NarzedziaIP
             string apiUrl = null;
             string apiKey = null;
             string dashUrl = null;
-            try
-            {
-                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
-                apiUrl = s.TacticalApiUrl;
-                apiKey = s.TacticalApiKey;
-                dashUrl = s.TacticalDashboardUrl;
-            }
-            catch { }
+            GetEffectiveTactical(out apiUrl, out apiKey, out dashUrl);
 
             if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(dashUrl))
             {

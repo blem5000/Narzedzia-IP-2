@@ -587,6 +587,7 @@ namespace NarzedziaIP
             if (total <= 0)
                 total = 1;
             long done = 0;
+            List<string> renamedBackups = new List<string>();
             foreach (Tuple<string, string, long> job in jobs)
             {
                 string target = Path.Combine(dst, job.Item2);
@@ -603,11 +604,15 @@ namespace NarzedziaIP
                     catch (IOException ex)
                     {
                         lastErr = ex;
+                        if (attempt == 0 && TryRenameLockedFile(target) && !renamedBackups.Contains(target))
+                            renamedBackups.Add(target);
                         Thread.Sleep(1000);
                     }
                     catch (UnauthorizedAccessException ex)
                     {
                         lastErr = ex;
+                        if (attempt == 0 && TryRenameLockedFile(target) && !renamedBackups.Contains(target))
+                            renamedBackups.Add(target);
                         Thread.Sleep(1000);
                     }
                 }
@@ -619,6 +624,64 @@ namespace NarzedziaIP
             }
             if (progress != null)
                 progress.Report(new DownloadProgress(total, total));
+
+            // Sprzątanie po rename-swap, ale tylko backupy, do których leży
+            // świeży oryginał (stary proces może nadal trzymać swój plik).
+            foreach (string target in renamedBackups)
+            {
+                try
+                {
+                    if (File.Exists(target))
+                        File.Delete(target + ".old");
+                }
+                catch { }
+            }
+        }
+
+        // Działający exe da się w Windows przemianować (mapowanie obrazu nie
+        // blokuje rename), ale nie nadpisać. Przy aktualizacji z sharea albo
+        // przy drugiej instancji: odsuń zablokowany plik na bok (*.old),
+        // żeby świeża kopia mogła wejść na jego miejsce. Zwraca powodzenie.
+        public static bool TryRenameLockedFile(string target)
+        {
+            if (string.IsNullOrWhiteSpace(target))
+                return false;
+            try
+            {
+                if (!File.Exists(target))
+                    return true;
+                string backup = target + ".old";
+                try { File.Delete(backup); }
+                catch { }
+                File.Move(target, backup);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // Best-effort sprzątanie *.old, do których istnieje świeży oryginał
+        // (np. przy starcie aplikacji). Cudzych plików nie ruszamy.
+        public static void CleanupOldBackups(string dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+                return;
+            try
+            {
+                foreach (string stale in Directory.GetFiles(dir, "*.old", SearchOption.TopDirectoryOnly))
+                {
+                    try
+                    {
+                        string original = stale.Substring(0, stale.Length - ".old".Length);
+                        if (File.Exists(original))
+                            File.Delete(stale);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
         }
 
         // The updater must NOT run from the app dir: it replaces every file
@@ -702,6 +765,9 @@ namespace NarzedziaIP
             bat.AppendLine(")");
             bat.AppendLine("set \"SRC=%STAGE%\"");
             bat.AppendLine("if exist \"%STAGE%\\" + InnerFolderName + "\\%EXE%\" set \"SRC=%STAGE%\\" + InnerFolderName + "\"");
+            bat.AppendLine("rem rename-swap: dzialajacy exe da sie przemianowac, nie nadpisac (share / druga instancja)");
+            bat.AppendLine("del \"%DST%\\%EXE%.old\" >nul 2>&1");
+            bat.AppendLine("ren \"%DST%\\%EXE%\" \"%EXE%.old\" >nul 2>&1");
             bat.AppendLine("robocopy \"%SRC%\" \"%DST%\" /E /IS /IT /R:2 /W:1 /NFL /NDL /NJH /NJS"
                 + (string.IsNullOrWhiteSpace(xf) ? string.Empty : " /XF " + xf) + " >> \"%LOG%\" 2>&1");
             bat.AppendLine("ver>nul");
