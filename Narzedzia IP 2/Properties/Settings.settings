@@ -43,5 +43,14 @@
     <Setting Name="AclSeqOut" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">530</Value>
     </Setting>
+    <Setting Name="MacFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)">plain</Value>
+    </Setting>
+    <Setting Name="MainWidth" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">889</Value>
+    </Setting>
+    <Setting Name="MainHeight" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">500</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

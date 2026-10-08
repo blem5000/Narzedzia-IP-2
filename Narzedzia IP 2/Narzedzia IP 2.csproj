@@ -80,6 +80,8 @@
     </Compile>
     <Compile Include="App.Update.cs" />
     <Compile Include="AclWildcard.cs" />
+    <Compile Include="AclInput.cs" />
+    <Compile Include="MacFormat.cs" />
     <Compile Include="ClipboardHelper.cs" />
     <Compile Include="DhcpClient.cs" />
     <Compile Include="AclRemark.cs" />

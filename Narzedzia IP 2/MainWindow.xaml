@@ -4,9 +4,11 @@
         Title="Narzedzia IP"
         Width="889"
         Height="500"
+        MinWidth="700"
+        MinHeight="450"
         FontFamily="Segoe UI"
         FontSize="14"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
@@ -274,7 +276,18 @@
                                 Content="Stop"
                                 Width="83"
                                 Height="32"
+                                Margin="0,0,15,0"
                                 Click="btnStopPing_Click"/>
+
+                        <TextBlock Text="Interwał (s):"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,5,0"/>
+
+                        <TextBox x:Name="txtPingInterval"
+                                 Text="1"
+                                 Width="50"
+                                 Height="32"
+                                 VerticalContentAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Ping status / progress -->
@@ -499,7 +512,7 @@
                             BorderThickness="1"
                             BorderBrush="#CCCCCC"
                             Padding="10">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock x:Name="lblAppVersion"
                                        Text="Wersja: ..."
                                        FontWeight="Bold"
@@ -511,12 +524,25 @@
                                       Margin="0,0,15,0"
                                       Checked="chkUpdateAuto_Checked"
                                       Unchecked="chkUpdateAuto_Unchecked"/>
+                            <TextBlock Text="MAC:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,5,0"/>
+                            <ComboBox x:Name="cmbMacFormat"
+                                      Width="210"
+                                      Height="32"
+                                      VerticalContentAlignment="Center"
+                                      Margin="0,0,15,0"
+                                      SelectionChanged="cmbMacFormat_SelectionChanged">
+                                <ComboBoxItem Content="Zwykły (bez separatorów)"/>
+                                <ComboBoxItem Content="Dwukropki AA:BB:CC:DD:EE:FF"/>
+                                <ComboBoxItem Content="Cisco aabb.ccdd.eeff"/>
+                            </ComboBox>
                             <Button x:Name="btnCheckUpdate"
                                     Content="Sprawdź aktualizacje"
                                     Width="170"
                                     Height="32"
                                     Click="btnCheckUpdate_Click"/>
-                        </StackPanel>
+                        </WrapPanel>
                     </Border>
                 </Grid>
             </TabItem>
@@ -644,7 +670,9 @@
 
                             <Paragraph>
                                 <Bold>Przycisk Kopiuj MAC:</Bold>
-                                Kopiuje znaleziony adres MAC do schowka. Myślniki w adresie MAC są usuwane.
+                                Kopiuje znaleziony adres MAC do schowka. Format wybierzesz
+                                w zakładce <Bold>Ustawienia</Bold>:
+                                zwykły, z dwukropkami albo ciscowy.
                             </Paragraph>
 
                             <Paragraph>
@@ -715,7 +743,10 @@
 
                             <Paragraph>
                                 <Bold>Przycisk Stop:</Bold>
-                                Zatrzymuje cykliczne pingowanie.
+                                Zatrzymuje cykliczne pingowanie i wypisuje podsumowanie
+                                (wysłane/odebrane, straty, min/śr/max).
+                                Interwał w sekundach (1-300) ustawisz obok przycisków,
+                                a podsumowanie cząstkowe pojawia się co 10 pomiarów.
                             </Paragraph>
 
                             <Paragraph>
@@ -856,6 +887,7 @@
                             <Paragraph>
                                 <Bold>Pole Lista IP:</Bold>
                                 W tym polu należy wpisać adresy docelowe (ENTER lub przecinki).
+                                Niepoprawne wpisy są zgłaszane z liczbą i pomijane.
                             </Paragraph>
 
                             <Paragraph>

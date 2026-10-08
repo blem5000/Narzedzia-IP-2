@@ -23,6 +23,12 @@ namespace NarzedziaIP
             }
 
             LoadAclSettings();
+            try
+            {
+                string mf = global::Narzedzia_IP_2.Properties.Settings.Default.MacFormat;
+                cmbMacFormat.SelectedIndex = mf == MacFormat.Cisco ? 2 : mf == MacFormat.Colon ? 1 : 0;
+            }
+            catch { }
             BeginDhcpBackgroundCheck();
 
             // Post-startup fallback: the boot check found an update but could

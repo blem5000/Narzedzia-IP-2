@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -32,6 +33,7 @@ namespace NarzedziaIP
 
         private readonly DispatcherTimer pingTimer = new DispatcherTimer();
         private readonly List<string> pingIPs = new List<string>();
+        private readonly Dictionary<string, PingStats> _pingStats = new Dictionary<string, PingStats>();
         private int _pingIndex;
 
         private DispatcherTimer _dhcpTypingTimer = new DispatcherTimer();
@@ -51,6 +53,19 @@ namespace NarzedziaIP
 
             SetTitleSuffix("trwa sprawdzanie dhcp");
 
+            try
+            {
+                var ws = global::Narzedzia_IP_2.Properties.Settings.Default;
+                if (ws.MainWidth >= MinWidth && ws.MainHeight >= MinHeight)
+                {
+                    Width = ws.MainWidth;
+                    Height = ws.MainHeight;
+                }
+            }
+            catch { }
+
+            Closing += MainWindow_Closing;
+
             Loaded += MainWindow_Loaded;
 
             pingTimer.Interval = TimeSpan.FromSeconds(1);
@@ -68,6 +83,33 @@ namespace NarzedziaIP
             txtAclSource.TextChanged += TxtAclSource_TextChanged;
             _dhcpTypingTimer.Interval = TimeSpan.FromMilliseconds(500);
             _dhcpTypingTimer.Tick += DhcpTypingTimer_Tick;
+        }
+
+        private void cmbMacFormat_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                string[] styles = { MacFormat.Plain, MacFormat.Colon, MacFormat.Cisco };
+                int i = cmbMacFormat.SelectedIndex;
+                if (i >= 0 && i < styles.Length)
+                {
+                    global::Narzedzia_IP_2.Properties.Settings.Default.MacFormat = styles[i];
+                    global::Narzedzia_IP_2.Properties.Settings.Default.Save();
+                }
+            }
+            catch { }
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            try
+            {
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                s.MainWidth = Width;
+                s.MainHeight = Height;
+                s.Save();
+            }
+            catch { }
         }
 
         // ============================================================
@@ -109,7 +151,16 @@ namespace NarzedziaIP
             string mac = ResolveActiveMac();
             if (!string.IsNullOrWhiteSpace(mac))
             {
-                if (!ClipboardHelper.TrySetText(mac.Replace("-", "")))
+                string style = MacFormat.Plain;
+                try
+                {
+                    string saved = global::Narzedzia_IP_2.Properties.Settings.Default.MacFormat;
+                    if (saved == MacFormat.Colon || saved == MacFormat.Cisco)
+                        style = saved;
+                }
+                catch { }
+                string formatted = MacFormat.Format(mac, style) ?? mac.Replace("-", "");
+                if (!ClipboardHelper.TrySetText(formatted))
                     ShowClipboardError("Kopiuj MAC");
                 return;
             }
@@ -151,6 +202,8 @@ namespace NarzedziaIP
         private void btnStopPing_Click(object sender, RoutedEventArgs e)
         {
             pingTimer.Stop();
+
+            AppendPingSummaries();
 
             btnStopPing.IsEnabled = false;
             btnStartPing.IsEnabled = true;
@@ -542,6 +595,16 @@ namespace NarzedziaIP
             pingTimer.Stop();
             pingIPs.Clear();
             _pingIndex = 0;
+            _pingStats.Clear();
+
+            int secs = 1;
+            try
+            {
+                secs = PingHelper.ParseIntervalSeconds(txtPingInterval.Text, 1);
+                txtPingInterval.Text = secs.ToString();
+            }
+            catch { secs = 1; }
+            pingTimer.Interval = TimeSpan.FromSeconds(secs);
 
             string hostname = txtHostname2.Text.Trim();
 
@@ -652,10 +715,19 @@ namespace NarzedziaIP
                     PingReply reply = await p.SendPingAsync(ip, 1000);
 
                     bool success = reply.Status == IPStatus.Success;
+                    long rtt = 0;
+                    try { rtt = reply.RoundtripTime; }
+                    catch { rtt = 0; }
+
+                    PingStats stats = GetPingStats(ip);
+                    stats.Record(success, rtt);
 
                     txtPing.AppendText(
                         $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {ip} - {reply.Status}{Environment.NewLine}"
                     );
+
+                    if (stats.Sent % 10 == 0)
+                        txtPing.AppendText(stats.Summary(ip) + Environment.NewLine);
 
                     PlayPingSound(success);
                 }
@@ -676,6 +748,30 @@ namespace NarzedziaIP
             txtPing.ScrollToEnd();
         }
 
+
+        private PingStats GetPingStats(string ip)
+        {
+            PingStats stats;
+            if (!_pingStats.TryGetValue(ip, out stats))
+            {
+                stats = new PingStats();
+                _pingStats[ip] = stats;
+            }
+            return stats;
+        }
+
+        private void AppendPingSummaries()
+        {
+            try
+            {
+                foreach (var kv in _pingStats.OrderBy(kv => kv.Key))
+                {
+                    txtPing.AppendText(kv.Value.Summary(kv.Key) + Environment.NewLine);
+                }
+                txtPing.ScrollToEnd();
+            }
+            catch { }
+        }
 
         // ============================================================
         // MSRA
@@ -926,12 +1022,19 @@ Write-Output 'NOTFOUND'
                     return;
                 }
 
-                var destIPs = txtAclDest.Text
-                    .Split(new[] { ',', '\n', '\r', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(x => x.Trim())
-                    .Where(x => IPAddress.TryParse(x, out _))
-                    .Distinct()
-                    .ToList();
+                var split = AclInput.SplitIps(txtAclDest.Text);
+                var destIPs = split.Valid;
+
+                if (split.Rejected.Count > 0)
+                {
+                    var show = split.Rejected.Take(8).ToList();
+                    MessageBox.Show(
+                        $"Pominięto niepoprawne adresy ({split.Rejected.Count}): {string.Join(", ", show)}" +
+                        (split.Rejected.Count > show.Count ? ", ..." : string.Empty),
+                        "ACL",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
 
                 if (destIPs.Count == 0)
                 {

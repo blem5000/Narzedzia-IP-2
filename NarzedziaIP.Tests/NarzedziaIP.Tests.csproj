@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="AclRemarkTests.cs" />
     <Compile Include="ClipboardHelperTests.cs" />
+    <Compile Include="PingMacAclTests.cs" />
     <Compile Include="DhcpClientTests.cs" />
     <Compile Include="AclWildcardTests.cs" />
     <Compile Include="IpSelectionTests.cs" />

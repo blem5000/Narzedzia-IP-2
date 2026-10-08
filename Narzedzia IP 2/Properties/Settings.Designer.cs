@@ -221,5 +221,50 @@ namespace Narzedzia_IP_2.Properties
                 this["AclSeqOut"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("plain")]
+        public string MacFormat
+        {
+            get
+            {
+                return ((string)(this["MacFormat"]));
+            }
+            set
+            {
+                this["MacFormat"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("889")]
+        public double MainWidth
+        {
+            get
+            {
+                return ((double)(this["MainWidth"]));
+            }
+            set
+            {
+                this["MainWidth"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("500")]
+        public double MainHeight
+        {
+            get
+            {
+                return ((double)(this["MainHeight"]));
+            }
+            set
+            {
+                this["MainHeight"] = value;
+            }
+        }
     }
 }
