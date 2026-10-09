@@ -364,7 +364,7 @@
                 </Grid>
             </TabItem>
             <!-- ACL TAB -->
-            <TabItem x:Name="tabACL" Header="ACL">
+            <TabItem x:Name="tabACL" Header="ACL" Visibility="Collapsed">
                 <Grid Margin="10">
 
                     <Grid.RowDefinitions>
@@ -944,7 +944,7 @@
                                 Program nie uruchomi MSRA, ponieważ wynik nie jest pojedynczym poprawnym adresem IPv4.
                             </Paragraph>
                             <Paragraph FontSize="16" FontWeight="Bold">
-                                6. Zakładka: ACL
+                                6. Zakładka: ACL (obecnie ukryta)
                             </Paragraph>
 
                             <Paragraph>
