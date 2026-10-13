@@ -264,7 +264,8 @@
                         <TextBox x:Name="txtHostname2"
                                  Width="220"
                                  Height="31"
-                                 VerticalContentAlignment="Center"/>
+                                 VerticalContentAlignment="Center"
+                                 ToolTip="Jedno lub wiele (przecinki / nowe linie): hostname albo IP"/>
                     </StackPanel>
 
                     <GroupBox Grid.Row="0"
@@ -353,13 +354,54 @@
                               Grid.ColumnSpan="2"
                               Header="Ping">
 
-                        <TextBox x:Name="txtPing"
-                                 AcceptsReturn="True"
-                                 AcceptsTab="True"
-                                 VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 IsReadOnly="True"
-                                 TextWrapping="NoWrap"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DataGrid x:Name="dgPing"
+                                      Grid.Row="0"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="All"
+                                      SelectionMode="Single">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding LastOk}" Value="True">
+                                                <Setter Property="Background" Value="LightGreen"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding LastOk}" Value="False">
+                                                <Setter Property="Background" Value="LightPink"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Urządzenie" Binding="{Binding Display}" Width="*"/>
+                                    <DataGridTextColumn Header="Pinguje" Binding="{Binding StatusText}" Width="70"/>
+                                    <DataGridTextColumn Header="Wysłane" Binding="{Binding Sent}" Width="70"/>
+                                    <DataGridTextColumn Header="Success" Binding="{Binding Succeeded}" Width="70"/>
+                                    <DataGridTextColumn Header="Success %" Binding="{Binding SuccessPctText}" Width="80"/>
+                                    <DataGridTextColumn Header="Ost. OK" Binding="{Binding LastOkText}" Width="70"/>
+                                    <DataGridTextColumn Header="Ost. TTL" Binding="{Binding LastTtlText}" Width="70"/>
+                                    <DataGridTextColumn Header="Śr. TTL" Binding="{Binding AvgTtlText}" Width="70"/>
+                                    <DataGridTextColumn Header="Ost. sukces" Binding="{Binding LastSuccessText}" Width="90"/>
+                                    <DataGridTextColumn Header="Ost. błąd" Binding="{Binding LastFailText}" Width="90"/>
+                                    <DataGridTextColumn Header="Min" Binding="{Binding MinText}" Width="80"/>
+                                    <DataGridTextColumn Header="Max" Binding="{Binding MaxText}" Width="80"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <TextBlock x:Name="txtPingSummary"
+                                       Grid.Row="1"
+                                       Margin="0,5,0,0"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas"
+                                       FontSize="12"/>
+                        </Grid>
                     </GroupBox>
                 </Grid>
             </TabItem>
@@ -795,7 +837,18 @@
 
                             <Paragraph>
                                 <Bold>Pole Hostname:</Bold>
-                                Można wpisać nazwę komputera albo bezpośrednio adres IP.
+                                Można wpisać jedną lub wiele pozycji naraz
+                                (przecinki albo nowe linie): nazwę komputera
+                                albo bezpośrednio adres IP.
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Tabela wyników:</Bold>
+                                każdy wiersz to jedno urządzenie.
+                                Wiersz pingujący jest zielony, niepingujący czerwony.
+                                Kolumny: wysłane, success i procent, ostatni wynik
+                                i jego TTL, średni TTL, czas ostatniego sukcesu
+                                i błędu oraz min/max czasu.
                             </Paragraph>
 
                             <Paragraph>
@@ -808,6 +861,7 @@
                                         Jeśli wpisano
                                         <Bold>hostname</Bold> , program najpierw wyszukuje aktywny adres IP w DHCP,
                             a następnie rozpoczyna cykliczne pingowanie.
+                                        Każdą pozycję z listy rozwiązuje osobno.
                                     </Paragraph>
                                 </ListItem>
                                 <ListItem>

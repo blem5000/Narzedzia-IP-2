@@ -36,9 +36,7 @@ namespace NarzedziaIP
         private string _tacticalCheckedHost;
 
         private readonly DispatcherTimer pingTimer = new DispatcherTimer();
-        private readonly List<string> pingIPs = new List<string>();
-        private readonly Dictionary<string, PingStats> _pingStats = new Dictionary<string, PingStats>();
-        private int _pingIndex;
+        private readonly List<PingRow> _pingRows = new List<PingRow>();
 
         private DispatcherTimer _dhcpTypingTimer = new DispatcherTimer();
 
@@ -209,7 +207,7 @@ namespace NarzedziaIP
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(txtPing.Text))
+                if (_pingRows.Count == 0)
                 {
                     MessageBox.Show(
                         this,
@@ -230,7 +228,12 @@ namespace NarzedziaIP
 
                 if (dlg.ShowDialog(this) == true)
                 {
-                    System.IO.File.WriteAllText(dlg.FileName, txtPing.Text, System.Text.Encoding.UTF8);
+                    List<string> lines = new List<string>();
+                    foreach (PingRow r in _pingRows)
+                        lines.Add(r.Summary());
+                    System.IO.File.WriteAllText(
+                        dlg.FileName, string.Join(Environment.NewLine, lines) + Environment.NewLine,
+                        System.Text.Encoding.UTF8);
                     MessageBox.Show(
                         this,
                         "Zapisano log do:\n" + dlg.FileName,
@@ -254,7 +257,14 @@ namespace NarzedziaIP
         {
             pingTimer.Stop();
 
-            AppendPingSummaries();
+            try
+            {
+                List<string> lines = new List<string>();
+                foreach (PingRow r in _pingRows)
+                    lines.Add(r.Summary());
+                txtPingSummary.Text = string.Join(Environment.NewLine, lines);
+            }
+            catch { }
 
             btnStopPing.IsEnabled = false;
             btnStartPing.IsEnabled = true;
@@ -698,9 +708,9 @@ namespace NarzedziaIP
         private async Task StartPingAsync()
         {
             pingTimer.Stop();
-            pingIPs.Clear();
-            _pingIndex = 0;
-            _pingStats.Clear();
+            _pingRows.Clear();
+            try { dgPing.ItemsSource = null; txtPingSummary.Text = string.Empty; }
+            catch { }
 
             int secs = 1;
             try
@@ -711,64 +721,58 @@ namespace NarzedziaIP
             catch { secs = 1; }
             pingTimer.Interval = TimeSpan.FromSeconds(secs);
 
-            string hostname = txtHostname2.Text.Trim();
+            List<string> targets = PingTargets.ParseInput(txtHostname2.Text);
 
-            if (string.IsNullOrWhiteSpace(hostname))
+            if (targets.Count == 0)
             {
-                txtPing.AppendText($"Brak hostname{Environment.NewLine}");
-                txtPing.ScrollToEnd();
+                txtPingSummary.Text = "Brak hostname";
                 return;
             }
 
-            if (IsIPv4Address(hostname))
-            {
-                txtPing.Clear();
-
-                pingIPs.Clear();
-                pingIPs.Add(hostname);
-
-                txtPing.AppendText($"Pinguję wpisany adres IP: {hostname}{Environment.NewLine}");
-                txtPing.ScrollToEnd();
-
-                btnStartPing.IsEnabled = false;
-                btnStopPing.IsEnabled = true;
-
-                pingTimer.Start();
-
-                return;
-            }
-
-            txtPing.Clear();
-            txtPing.AppendText($"Szukam hosta w DHCP: {hostname}{Environment.NewLine}");
-
-            SetPingSearchInProgress(true, "Szukam hosta w DHCP...");
+            SetPingSearchInProgress(true, "Szukam hostów w DHCP...");
 
             try
             {
-                List<DhcpLease> leases = await GetDhcpLeasesAsync(_dhcpIp, hostname);
+                List<string> missed = new List<string>();
 
-                foreach (DhcpLease lease in leases)
+                foreach (string target in targets)
                 {
-                    bool pingOk = await PingHostAsync(lease.IPAddress);
-
-                    if (pingOk)
+                    if (IsIPv4Address(target))
                     {
-                        pingIPs.Add(lease.IPAddress);
+                        AddPingRow(target, target);
+                        continue;
                     }
+
+                    List<DhcpLease> leases = await GetDhcpLeasesAsync(_dhcpIp, target);
+
+                    bool any = false;
+                    foreach (DhcpLease lease in leases)
+                    {
+                        bool pingOk = await PingHostAsync(lease.IPAddress);
+
+                        if (pingOk)
+                        {
+                            AddPingRow(target + " (" + lease.IPAddress + ")", lease.IPAddress);
+                            any = true;
+                        }
+                    }
+
+                    if (!any)
+                        missed.Add(target);
                 }
 
-                if (pingIPs.Count == 0)
+                if (_pingRows.Count == 0)
                 {
-                    txtPing.AppendText(
-                        $"Nie znaleziono aktywnego adresu IP dla: {hostname}{Environment.NewLine}"
-                    );
-
-                    txtPing.ScrollToEnd();
+                    txtPingSummary.Text = "Nie znaleziono aktywnych adresów IP."
+                        + (missed.Count > 0 ? " Pominięto: " + string.Join(", ", missed) : string.Empty);
                     return;
                 }
 
-                txtPing.AppendText($"Pinguję: {pingIPs[0]}{Environment.NewLine}");
-                txtPing.ScrollToEnd();
+                if (missed.Count > 0)
+                    txtPingSummary.Text = "Pominięto (brak aktywnego IP): " + string.Join(", ", missed);
+
+                try { dgPing.ItemsSource = _pingRows; }
+                catch { }
 
                 btnStartPing.IsEnabled = false;
                 btnStopPing.IsEnabled = true;
@@ -777,8 +781,7 @@ namespace NarzedziaIP
             }
             catch (Exception ex)
             {
-                txtPing.AppendText($"Błąd DHCP: {ex.Message}{Environment.NewLine}");
-                txtPing.ScrollToEnd();
+                txtPingSummary.Text = $"Błąd DHCP: {ex.Message}";
             }
             finally
             {
@@ -792,6 +795,20 @@ namespace NarzedziaIP
             }
         }
 
+        private void AddPingRow(string display, string ip)
+        {
+            try
+            {
+                foreach (PingRow r in _pingRows)
+                {
+                    if (string.Equals(r.Ip, ip, StringComparison.OrdinalIgnoreCase))
+                        return;
+                }
+                _pingRows.Add(new PingRow(display, ip));
+            }
+            catch { }
+        }
+
         private bool _pingBusy;
 
         private async void PingTimer_Tick(object sender, EventArgs e)
@@ -799,7 +816,11 @@ namespace NarzedziaIP
             if (_pingBusy)
                 return;
 
-            if (pingIPs.Count == 0)
+            List<PingRow> rows;
+            try { rows = _pingRows.ToList(); }
+            catch { return; }
+
+            if (rows.Count == 0)
             {
                 pingTimer.Stop();
 
@@ -809,73 +830,56 @@ namespace NarzedziaIP
                 return;
             }
 
-            string ip = pingIPs[_pingIndex++ % pingIPs.Count];
-
             _pingBusy = true;
 
             try
             {
-                using (Ping p = new Ping())
+                bool[] oks = await Task.WhenAll(rows.Select(r => PingRowOnceAsync(r)));
+
+                bool anyOk = false;
+                bool anyFail = false;
+                foreach (bool o in oks)
                 {
-                    PingReply reply = await p.SendPingAsync(ip, 1000);
-
-                    bool success = reply.Status == IPStatus.Success;
-                    long rtt = 0;
-                    try { rtt = reply.RoundtripTime; }
-                    catch { rtt = 0; }
-
-                    PingStats stats = GetPingStats(ip);
-                    stats.Record(success, rtt);
-
-                    txtPing.AppendText(
-                        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {ip} - {reply.Status}{Environment.NewLine}"
-                    );
-
-                    if (stats.Sent % 10 == 0)
-                        txtPing.AppendText(stats.Summary(ip) + Environment.NewLine);
-
-                    PlayPingSound(success);
+                    if (o) anyOk = true;
+                    else anyFail = true;
                 }
-            }
-            catch (Exception ex)
-            {
-                txtPing.AppendText(
-                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - Ping error: {ex.Message}{Environment.NewLine}"
-                );
 
-                PlayPingSound(false);
+                if (anyOk)
+                    PlayPingSound(true);
+                if (anyFail)
+                    PlayPingSound(false);
             }
             finally
             {
                 _pingBusy = false;
             }
-
-            txtPing.ScrollToEnd();
         }
 
-
-        private PingStats GetPingStats(string ip)
-        {
-            PingStats stats;
-            if (!_pingStats.TryGetValue(ip, out stats))
-            {
-                stats = new PingStats();
-                _pingStats[ip] = stats;
-            }
-            return stats;
-        }
-
-        private void AppendPingSummaries()
+        private async Task<bool> PingRowOnceAsync(PingRow row)
         {
             try
             {
-                foreach (var kv in _pingStats.OrderBy(kv => kv.Key))
+                using (Ping p = new Ping())
                 {
-                    txtPing.AppendText(kv.Value.Summary(kv.Key) + Environment.NewLine);
+                    PingReply reply = await p.SendPingAsync(row.Ip, 1000);
+
+                    bool success = reply.Status == IPStatus.Success;
+                    long rtt = 0;
+                    int ttl = -1;
+                    try { rtt = reply.RoundtripTime; }
+                    catch { rtt = 0; }
+                    try { ttl = reply.Options != null ? reply.Options.Ttl : -1; }
+                    catch { ttl = -1; }
+
+                    row.Record(success, rtt, ttl);
+                    return success;
                 }
-                txtPing.ScrollToEnd();
             }
-            catch { }
+            catch
+            {
+                row.Record(false, 0, -1);
+                return false;
+            }
         }
 
         // ============================================================
