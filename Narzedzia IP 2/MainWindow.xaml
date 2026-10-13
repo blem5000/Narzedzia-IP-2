@@ -263,9 +263,11 @@
 
                         <TextBox x:Name="txtHostname2"
                                  Width="220"
-                                 Height="31"
-                                 VerticalContentAlignment="Center"
-                                 ToolTip="Jedno lub wiele (przecinki / nowe linie): hostname albo IP"/>
+                                 Height="60"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 TextWrapping="Wrap"
+                                 ToolTip="Jedno lub wiele (przecinki / nowe linie): hostname albo IP. Enter = nowa linia, Ctrl+Enter = start"/>
                     </StackPanel>
 
                     <GroupBox Grid.Row="0"
@@ -840,6 +842,8 @@
                                 Można wpisać jedną lub wiele pozycji naraz
                                 (przecinki albo nowe linie): nazwę komputera
                                 albo bezpośrednio adres IP.
+                                Enter to nowa linia, start to
+                                <Bold>Ctrl+Enter</Bold> albo przycisk Start.
                             </Paragraph>
 
                             <Paragraph>
