@@ -263,7 +263,7 @@
 
                         <TextBox x:Name="txtHostname2"
                                  Width="220"
-                                 Height="60"
+                                 Height="120"
                                  AcceptsReturn="True"
                                  VerticalScrollBarVisibility="Auto"
                                  TextWrapping="Wrap"
