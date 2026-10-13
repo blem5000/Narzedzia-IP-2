@@ -393,6 +393,7 @@
                                     <DataGridTextColumn Header="Ost. sukces" Binding="{Binding LastSuccessText}" Width="90"/>
                                     <DataGridTextColumn Header="Ost. błąd" Binding="{Binding LastFailText}" Width="90"/>
                                     <DataGridTextColumn Header="Min" Binding="{Binding MinText}" Width="80"/>
+                                    <DataGridTextColumn Header="Śr" Binding="{Binding AvgText}" Width="80"/>
                                     <DataGridTextColumn Header="Max" Binding="{Binding MaxText}" Width="80"/>
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -852,7 +853,7 @@
                                 Wiersz pingujący jest zielony, niepingujący czerwony.
                                 Kolumny: wysłane, success i procent, ostatni wynik
                                 i jego TTL, średni TTL, czas ostatniego sukcesu
-                                i błędu oraz min/max czasu.
+                                i błędu oraz min/śr/max czasu.
                             </Paragraph>
 
                             <Paragraph>
