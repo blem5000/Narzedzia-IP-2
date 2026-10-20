@@ -101,7 +101,7 @@
             <Bold>Wynik DHCP:</Bold>
                 W tym miejscu wyświetlany jest znaleziony adres IP oraz adres MAC.
                 Poniżej jest lista wszystkich aktywnych wyników do wyboru -
-                kopiowanie, MSRA, RDP i Tactical używają wybranego adresu
+                kopiowanie i połączenie (w wybranym sposobie) używają wybranego adresu
                 (przy jednym wyniku wybierany jest automatycznie).
         </Paragraph>
 
@@ -129,8 +129,7 @@
             przełączniki wybierają, czym program łączy się z komputerem.
             MSRA uruchamia Pomoc zdalną Microsoft Remote Assistance,
             RDP uruchamia Podłączanie pulpitu zdalnego (mstsc),
-            TacticalRMM otwiera pulpit komputera w dashboardzie TacticalRMM
-            (ten sam Mesh, co przycisk Tactical).
+            TacticalRMM otwiera pulpit komputera w dashboardzie TacticalRMM (Mesh).
             Wybór zapamiętywany jest w ustawieniach, więc po zamknięciu
             i ponownym uruchomieniu programu pozostaje taki sam.
         </Paragraph>
@@ -146,7 +145,8 @@
             <Bold>Przycisk Pokaż w RMM:</Bold>
             otwiera stronę komputera w dashboardzie TacticalRMM
             (stan, historia, zadania) - bez przechodzenia do pulpitu.
-            Do pulpitu (Mesh) przechodzi przycisk Tactical.
+            Do pulpitu (Mesh) program przechodzi przy wybranym sposobie
+            połączenia <Italic>TacticalRMM</Italic>.
         </Paragraph>
 
         <List>
@@ -461,7 +461,7 @@
         </Paragraph>
 
         <Paragraph>
-            <Bold>Przycisk Tactical</Bold> otwiera pulpit zdalny komputera
+            <Bold>Sposób połączenia TacticalRMM</Bold> otwiera pulpit zdalny komputera
                 przez TacticalRMM (Mesh) - bez zabierania sesji jak RDP:
                 użytkownik widzi na ekranie, co robisz.
                 Program znajduje agenta po nazwie hosta przez API TacticalRMM
@@ -476,8 +476,8 @@
             Wpisanie samego adresu IP nie wystarczy - potrzebna jest
             nazwa hosta (wpisz ją albo wyszukaj komputer).
             Przy wyszukiwaniu w DHCP program od razu sprawdza też
-            TacticalRMM: gdy agenta nie ma, przycisk Tactical jest
-            wyszarzony z podpowiedzią.
+            TacticalRMM: gdy agenta nie ma, przycisk <Bold>Pokaż w RMM</Bold>
+            jest wyszarzony z podpowiedzią.
         </Paragraph>
 
         <Paragraph>

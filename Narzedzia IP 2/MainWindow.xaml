@@ -144,14 +144,6 @@
                                 ToolTip="Połączenie z wybranym sposobem (MSRA albo RDP)"
                                 Click="btnConnect_Click"/>
 
-                        <Button x:Name="btnTactical"
-                                Content="Tactical"
-                                Width="92"
-                                Height="40"
-                                Margin="0,0,10,10"
-                                ToolTip="Otwórz pulpit w TacticalRMM"
-                                Click="btnTactical_Click"/>
-
                         <Button x:Name="btnShowInRmm"
                                 Content="Pokaż w RMM"
                                 Width="105"

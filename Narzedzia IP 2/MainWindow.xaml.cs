@@ -76,7 +76,7 @@ namespace NarzedziaIP
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
             btnConnect.IsEnabled = false;
-            SetRmmButtons(false, "Otwórz pulpit w TacticalRMM");
+            SetRmmButtons(false, "Otwórz stronę komputera w TacticalRMM");
             btnStopPing.IsEnabled = false;
 
             txtHostname.KeyDown += txtHostname_KeyDown;
@@ -358,7 +358,7 @@ namespace NarzedziaIP
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
             btnConnect.IsEnabled = false;
-            SetRmmButtons(false, "Otwórz pulpit w TacticalRMM");
+            SetRmmButtons(false, "Otwórz stronę komputera w TacticalRMM");
 
             txtHostname.Focus();
         }
@@ -477,7 +477,7 @@ namespace NarzedziaIP
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
                 btnConnect.IsEnabled = true;
-                SetRmmButtons(true, "Otwórz pulpit w TacticalRMM");
+                SetRmmButtons(true, "Otwórz stronę komputera w TacticalRMM");
 
                 txtHistoria.AppendText(
                     $"{hostname}\tWpisano IP bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -553,10 +553,9 @@ namespace NarzedziaIP
                     btnCopyIP.IsEnabled = true;
                     btnCopyMAC.IsEnabled = true;
                     btnConnect.IsEnabled = true;
-                    // UWAGA: nie wlaczamy tutaj btnTactical - jego stan
-                    // ustawia CheckTacticalAgentAsync (wylacza, gdy agenta nie
-                    // ma w TacticalRMM). Wlaczanie go tutaj cofalo ten stan
-                    // i tooltip ostrzegal, a przycisk i tak dzialal.
+                    // UWAGA: przyciskow "Pokaz w RMM" nie wlaczamy tutaj - jego stan
+                    // ustawia CheckTacticalAgentAsync (wylacza, gdy agenta nie ma
+                    // w TacticalRMM). Wlaczanie go tutaj cofalo ten stan.
                 }
                 else
                 {
@@ -625,7 +624,7 @@ namespace NarzedziaIP
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
                 btnConnect.IsEnabled = true;
-                SetRmmButtons(true, "Otwórz pulpit w TacticalRMM");
+                SetRmmButtons(true, "Otwórz stronę komputera w TacticalRMM");
 
                 string method = SelectedConnectMethod();
                 string label = ConnectMethod.Label(method);
@@ -1189,20 +1188,19 @@ namespace NarzedziaIP
             _tacticalCheckedHost = null;
             try
             {
-                SetRmmButtons(true, "Otwórz pulpit w TacticalRMM");
+                SetRmmButtons(true, "Otwórz stronę komputera w TacticalRMM");
             }
             catch (Exception err) { AppLog.Error(err); }
         }
 
-        // Oba przyciski RMM (pulpit + strona komputera) maja wspolny stan.
-        private string _rmmTooltip = "Otwórz pulpit w TacticalRMM";
+        // Przycisk "Pokaz w RMM" - strona komputera w dashboardzie.
+        // Stan (agent znaleziony / brak agenta) trzymany jest w tooltipie.
+        private string _rmmTooltip = "Otwórz stronę komputera w TacticalRMM";
 
         private void SetRmmButtons(bool enabled, string tooltip)
         {
             if (!string.IsNullOrWhiteSpace(tooltip))
                 _rmmTooltip = tooltip;
-            btnTactical.IsEnabled = enabled;
-            btnTactical.ToolTip = _rmmTooltip;
             btnShowInRmm.IsEnabled = enabled;
             btnShowInRmm.ToolTip = _rmmTooltip;
         }
@@ -1458,14 +1456,8 @@ namespace NarzedziaIP
             return agent;
         }
 
-        private async void btnTactical_Click(object sender, RoutedEventArgs e)
-        {
-            await ConnectTacticalAsync();
-        }
-
         // Polaczenie z komputerem przez TacticalRMM (pulpit Mesh).
-        // Uzywane przez przycisk Tactical i przez sposob polaczenia
-        // "TacticalRMM" w radio buttonach.
+        // Uzywane przez sposob polaczenia "TacticalRMM" w radio buttonach.
         private async Task ConnectTacticalAsync()
         {
             string host = null;
@@ -1476,7 +1468,6 @@ namespace NarzedziaIP
             if (!PrepareTacticalAction(out host, out apiUrl, out apiKey, out dashUrl, out allowInsecure))
                 return;
 
-            btnTactical.IsEnabled = false;
             SetStatus("Szukam w TacticalRMM...");
             try
             {
@@ -2164,7 +2155,7 @@ namespace NarzedziaIP
                 btnCopyIP.IsEnabled = false;
                 btnCopyMAC.IsEnabled = false;
                 btnConnect.IsEnabled = false;
-                SetRmmButtons(false, "Otwórz pulpit w TacticalRMM");
+                SetRmmButtons(false, "Otwórz stronę komputera w TacticalRMM");
                 btnSearchConnect.IsEnabled = true;
             }
         }
