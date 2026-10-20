@@ -67,10 +67,23 @@ jobs:
           Copy-Item "NarzedziaIP.Updater\bin\Release\NarzedziaIP.Updater.exe" $Dist -Force
           Compress-Archive -Path $Dist -DestinationPath "dist\NarzedziaIP2-windows.zip"
 
+      # SHA-256 paczki trafia do notatek release'a - aplikacja porownuje go z
+      # hashem pobranego pliku i przerywa instalacje przy niezgodnosci.
+      # Drugi asset (zip.sha256) to wersja dla czlowieka i skryptow.
+      - name: Checksum
+        shell: powershell
+        run: |
+          $zip = "dist\NarzedziaIP2-windows.zip"
+          $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$sha  NarzedziaIP2-windows.zip" | Out-File -FilePath "$zip.sha256" -Encoding ascii -NoNewline
+          Write-Host "SHA256: $sha"
+          "sha=$sha" >> $env:GITHUB_ENV
+
       - name: GitHub Release
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "${{ github.ref_name }}"
-          gh release create $tag "dist\NarzedziaIP2-windows.zip" --title $tag --notes "Automatyczny release z CI (build + testy + paczka)."
+          $notes = "Automatyczny release z CI (build + testy + paczka).`n`nSHA256: $env:sha"
+          gh release create $tag "dist\NarzedziaIP2-windows.zip" "dist\NarzedziaIP2-windows.zip.sha256" --title $tag --notes $notes

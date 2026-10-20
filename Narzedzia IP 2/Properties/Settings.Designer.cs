@@ -326,5 +326,20 @@ namespace Narzedzia_IP_2.Properties
                 this["SettingsUpgraded"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool TacticalAllowInsecureHttp
+        {
+            get
+            {
+                return ((bool)(this["TacticalAllowInsecureHttp"]));
+            }
+            set
+            {
+                this["TacticalAllowInsecureHttp"] = value;
+            }
+        }
     }
 }

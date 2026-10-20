@@ -28,7 +28,6 @@ namespace NarzedziaIP
         private readonly List<string> poprawnyIP = new List<string>();
         private readonly List<string> poprawnyMAC = new List<string>();
         private readonly List<string> niePoprawnyIP = new List<string>();
-        private readonly List<string> niePoprawnyMAC = new List<string>();
 
         private readonly List<DhcpLease> _activeLeases = new List<DhcpLease>();
 
@@ -440,6 +439,11 @@ namespace NarzedziaIP
 
             ResetTacticalState();
 
+            // Reset ostrzezenia DNS PRZED wczesnym wyjsciem dla IPv4 - inaczej
+            // stary komunikat zostawal na ekranie po wyszukaniu po adresie IP.
+            lblDnsWarning.Text = "";
+            lblDnsWarning.Visibility = Visibility.Collapsed;
+
             if (string.IsNullOrWhiteSpace(hostname))
             {
                 lblIP.Text = "Brak hostname!";
@@ -476,13 +480,9 @@ namespace NarzedziaIP
             poprawnyIP.Clear();
             poprawnyMAC.Clear();
             niePoprawnyIP.Clear();
-            niePoprawnyMAC.Clear();
 
             lblIP.Text = "Szukam...";
             lblMAC.Text = "Szukam...";
-
-            lblDnsWarning.Text = "";
-            lblDnsWarning.Visibility = Visibility.Collapsed;
 
             try
             {
@@ -513,7 +513,6 @@ namespace NarzedziaIP
                     else
                     {
                         niePoprawnyIP.Add(lease.IPAddress);
-                        niePoprawnyMAC.Add(lease.MacAddress);
                     }
                 }
 
@@ -1082,14 +1081,14 @@ namespace NarzedziaIP
         {
             string apiUrl = null;
             string apiKey = null;
-            GetEffectiveTactical(out apiUrl, out apiKey, out string _);
+            GetEffectiveTactical(out apiUrl, out apiKey, out string _, out bool allowInsecure);
             if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey))
                 return; // brak konfiguracji - przycisk działa jak dotąd
 
             TacticalAgent found = null;
             try
             {
-                List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15);
+                List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15, allowInsecure);
                 found = TacticalRmm.FindByHostname(agents, hostname);
             }
             catch
@@ -1145,17 +1144,19 @@ namespace NarzedziaIP
             return null;
         }
 
-        private void GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl)
+        private void GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl, out bool allowInsecureHttp)
         {
             string setApi = null;
             string setKey = null;
             string setDash = null;
+            bool setAllow = false;
             try
             {
                 var s = global::Narzedzia_IP_2.Properties.Settings.Default;
                 setApi = s.TacticalApiUrl;
                 setKey = ProtectedText.ResolveApiKey(null, s.TacticalApiKey);
                 setDash = s.TacticalDashboardUrl;
+                setAllow = s.TacticalAllowInsecureHttp;
             }
             catch { }
             CompanyConfig.TacticalConfig merged;
@@ -1165,16 +1166,24 @@ namespace NarzedziaIP
                 {
                     ApiUrl = setApi,
                     ApiKey = setKey,
-                    DashboardUrl = setDash
+                    DashboardUrl = setDash,
+                    AllowInsecureHttp = setAllow
                 });
             }
             catch
             {
-                merged = new CompanyConfig.TacticalConfig { ApiUrl = setApi, ApiKey = setKey, DashboardUrl = setDash };
+                merged = new CompanyConfig.TacticalConfig
+                {
+                    ApiUrl = setApi,
+                    ApiKey = setKey,
+                    DashboardUrl = setDash,
+                    AllowInsecureHttp = setAllow
+                };
             }
             apiUrl = merged.ApiUrl;
             apiKey = merged.ApiKey;
             dashUrl = merged.DashboardUrl;
+            allowInsecureHttp = merged.AllowInsecureHttp ?? false;
         }
 
         private void txtTacticalApiKey_PasswordChanged(object sender, RoutedEventArgs e)
@@ -1198,10 +1207,11 @@ namespace NarzedziaIP
         {
             try
             {
-                GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl);
+                GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl, out bool allowInsecure);
                 txtTacticalApiUrl.Text = apiUrl ?? string.Empty;
                 txtTacticalApiKey.Password = apiKey ?? string.Empty;
                 txtTacticalDashboardUrl.Text = dashUrl ?? string.Empty;
+                chkTacticalAllowInsecure.IsChecked = allowInsecure;
                 UpdateApiKeyTooltip();
                 CompanyConfig.TacticalConfig reg = null;
                 try { reg = CompanyConfig.ReadTactical(); }
@@ -1220,6 +1230,7 @@ namespace NarzedziaIP
                 s.TacticalApiUrl = txtTacticalApiUrl.Text.Trim();
                 s.TacticalApiKey = ProtectedText.Protect(txtTacticalApiKey.Password ?? string.Empty);
                 s.TacticalDashboardUrl = txtTacticalDashboardUrl.Text.Trim();
+                s.TacticalAllowInsecureHttp = chkTacticalAllowInsecure.IsChecked == true;
                 s.Save();
             }
             catch { }
@@ -1242,8 +1253,8 @@ namespace NarzedziaIP
             SetTacticalStatus("Sprawdzanie...", Brushes.Gray);
             try
             {
-                GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl);
-                var agents = await TacticalRmm.GetAgentsAsync(apiUrl, apiKey, 15);
+                GetEffectiveTactical(out string apiUrl, out string apiKey, out string dashUrl, out bool allowInsecure);
+                var agents = await TacticalRmm.GetAgentsAsync(apiUrl, apiKey, 15, allowInsecure);
                 SetTacticalStatus($"OK: {agents.Count} agentów.", Brushes.Green);
             }
             catch (Exception ex)
@@ -1273,7 +1284,7 @@ namespace NarzedziaIP
             string apiUrl = null;
             string apiKey = null;
             string dashUrl = null;
-            GetEffectiveTactical(out apiUrl, out apiKey, out dashUrl);
+            GetEffectiveTactical(out apiUrl, out apiKey, out dashUrl, out bool allowInsecure);
 
             if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(dashUrl))
             {
@@ -1295,7 +1306,7 @@ namespace NarzedziaIP
                     agent = _tacticalAgent;
                 else
                 {
-                    List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15);
+                    List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15, allowInsecure);
                     agent = TacticalRmm.FindByHostname(agents, host);
                     _tacticalAgent = agent;
                     _tacticalChecked = true;
@@ -1373,6 +1384,11 @@ namespace NarzedziaIP
         // anulowanego (watek UI + anulowanie poprzedniego zapytania).
         private readonly ConcurrentDictionary<string, bool> _dhcpCache =
             new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+        // Limit liczby wpisow - inaczej kazdy wpisany IP zostawialby sie
+        // w cache na zawsze (uzytkownik moze wpisac setki adresow).
+        private const int DhcpCacheMaxEntries = 256;
+        private readonly ConcurrentQueue<string> _dhcpCacheOrder = new ConcurrentQueue<string>();
 
         private CancellationTokenSource _dhcpCheckCts;
 
@@ -1493,8 +1509,25 @@ namespace NarzedziaIP
                 return false;
 
             bool result = status == DhcpClient.ReservationStatus.Found;
-            _dhcpCache[ip] = result;
+            CacheDhcpResult(ip, result);
             return result;
+        }
+
+        // Zapis do cache z limitem rozmiaru - najstarszy wpis wypada.
+        private void CacheDhcpResult(string ip, bool result)
+        {
+            bool existed = _dhcpCache.ContainsKey(ip);
+            _dhcpCache[ip] = result;
+            if (!existed)
+                _dhcpCacheOrder.Enqueue(ip);
+
+            while (_dhcpCacheOrder.Count > DhcpCacheMaxEntries)
+            {
+                string oldest;
+                if (!_dhcpCacheOrder.TryDequeue(out oldest))
+                    break;
+                _dhcpCache.TryRemove(oldest, out _);
+            }
         }
 
         // Agregacja wildcardów: patrz AclWildcard.cs (poprawka: bloki > /25).

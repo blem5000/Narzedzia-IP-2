@@ -262,20 +262,28 @@ namespace NarzedziaIP
 
                 Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
                 Task<string> errorTask = process.StandardError.ReadToEndAsync();
-                Task<bool> waitTask = Task.Run(() =>
-                {
-                    try { return process.WaitForExit(timeoutMs <= 0 ? 30000 : timeoutMs); }
-                    catch { return false; }
-                });
 
-                Task done = await Task.WhenAny(waitTask, Task.Delay(Timeout.Infinite, cancel)).ConfigureAwait(false);
-                if (done != waitTask || !waitTask.Result)
+                // Anulowanie: rejestracja w tokenie (dispose w `using`) zamiast
+                // Task.Delay(Timeout.Infinite, cancel) - tamten zostawial
+                // niezdjeta rejestracje w tokenie przy kazdym zapytaniu.
+                TaskCompletionSource<bool> cancelled = new TaskCompletionSource<bool>();
+                using (cancel.Register(() => cancelled.TrySetResult(true)))
                 {
-                    try { process.Kill(); }
-                    catch { }
-                    cancel.ThrowIfCancellationRequested();
-                    throw new TimeoutException(
-                        "Przekroczono limit czasu zapytania PowerShell (" + (timeoutMs <= 0 ? 30000 : timeoutMs) / 1000 + " s).");
+                    Task<bool> waitTask = Task.Run(() =>
+                    {
+                        try { return process.WaitForExit(timeoutMs <= 0 ? 30000 : timeoutMs); }
+                        catch { return false; }
+                    });
+
+                    Task done = await Task.WhenAny(waitTask, cancelled.Task).ConfigureAwait(false);
+                    if (done != waitTask || !waitTask.Result)
+                    {
+                        try { process.Kill(); }
+                        catch { }
+                        cancel.ThrowIfCancellationRequested();
+                        throw new TimeoutException(
+                            "Przekroczono limit czasu zapytania PowerShell (" + (timeoutMs <= 0 ? 30000 : timeoutMs) / 1000 + " s).");
+                    }
                 }
 
                 string output = await outputTask.ConfigureAwait(false);

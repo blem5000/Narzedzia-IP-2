@@ -59,6 +59,38 @@ namespace NarzedziaIP
             return dot < 0 ? s : s.Substring(0, dot);
         }
 
+        // Czy klucz API moze leciec po tym adresie? Klucz X-API-KEY jest
+        // dlugoterminowym sekretem - po http leci czytelnym tekstem.
+        // Dopuszczamy https oraz loopback (localhost / 127.0.0.1 / ::1),
+        // bo tam kanal jest lokalny.
+        public static bool IsSecureApiUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return false;
+
+            Uri uri;
+            if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out uri))
+                return false;
+
+            if (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            string host = uri.Host;
+            if (string.IsNullOrWhiteSpace(host))
+                return false;
+            if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            IPAddress parsed;
+            if (IPAddress.TryParse(host, out parsed))
+                return IPAddress.IsLoopback(parsed);
+
+            return false;
+        }
+
         // Parsuje odpowiedź GET /agents/ (tablica {agent_id, hostname, ...}).
         // Wpisy bez agent_id pomijane.
         public static List<TacticalAgent> ParseAgentsJson(string json)
@@ -137,11 +169,25 @@ namespace NarzedziaIP
 
         public static async Task<List<TacticalAgent>> GetAgentsAsync(string apiUrl, string apiKey, int timeoutSeconds)
         {
+            return await GetAgentsAsync(apiUrl, apiKey, timeoutSeconds, false).ConfigureAwait(false);
+        }
+
+        // allowInsecureHttp = true omija blokade http (jawna zgoda uzytkownika
+        // w Ustawieniach - instalacje z API Tactical na http w sieci wewnetrznej).
+        public static async Task<List<TacticalAgent>> GetAgentsAsync(string apiUrl, string apiKey, int timeoutSeconds, bool allowInsecureHttp)
+        {
             string url = AgentsUrl(apiUrl);
             if (url == null)
                 throw new InvalidOperationException("Nie ustawiono adresu API TacticalRMM (zakładka Ustawienia).");
             if (string.IsNullOrWhiteSpace(apiKey))
                 throw new InvalidOperationException("Nie ustawiono klucza API TacticalRMM (zakładka Ustawienia).");
+
+            if (!allowInsecureHttp && !IsSecureApiUrl(apiUrl))
+            {
+                throw new InvalidOperationException(
+                    "Tactical API: adres nie jest bezpieczny (brak https). Klucz API lecialby otwartym tekstem. "
+                    + "Uzyj https:// albo zaznacz w Ustawieniach 'Zezwol na nieszyfrowane HTTP'.");
+            }
 
             using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient())
             {
@@ -173,7 +219,12 @@ namespace NarzedziaIP
 
         public static async Task<TacticalAgent> FindAgentAsync(string apiUrl, string apiKey, string hostname, int timeoutSeconds)
         {
-            List<TacticalAgent> agents = await GetAgentsCachedAsync(apiUrl, apiKey, timeoutSeconds).ConfigureAwait(false);
+            return await FindAgentAsync(apiUrl, apiKey, hostname, timeoutSeconds, false).ConfigureAwait(false);
+        }
+
+        public static async Task<TacticalAgent> FindAgentAsync(string apiUrl, string apiKey, string hostname, int timeoutSeconds, bool allowInsecureHttp)
+        {
+            List<TacticalAgent> agents = await GetAgentsCachedAsync(apiUrl, apiKey, timeoutSeconds, allowInsecureHttp).ConfigureAwait(false);
             return FindByHostname(agents, hostname);
         }
 
@@ -227,11 +278,16 @@ namespace NarzedziaIP
 
         public static async Task<List<TacticalAgent>> GetAgentsCachedAsync(string apiUrl, string apiKey, int timeoutSeconds)
         {
+            return await GetAgentsCachedAsync(apiUrl, apiKey, timeoutSeconds, false).ConfigureAwait(false);
+        }
+
+        public static async Task<List<TacticalAgent>> GetAgentsCachedAsync(string apiUrl, string apiKey, int timeoutSeconds, bool allowInsecureHttp)
+        {
             string key = (apiUrl ?? string.Empty) + "\n" + (apiKey ?? string.Empty);
             List<TacticalAgent> cached;
             if (TryGetCachedAgents(key, AgentsCacheAge, out cached))
                 return cached;
-            List<TacticalAgent> fresh = await GetAgentsAsync(apiUrl, apiKey, timeoutSeconds).ConfigureAwait(false);
+            List<TacticalAgent> fresh = await GetAgentsAsync(apiUrl, apiKey, timeoutSeconds, allowInsecureHttp).ConfigureAwait(false);
             StoreAgents(key, fresh);
             return fresh;
         }

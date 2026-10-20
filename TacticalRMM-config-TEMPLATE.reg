@@ -10,3 +10,7 @@ Windows Registry Editor Version 5.00
 "TacticalApiUrl"="https://api.TWOJA-DOMENA.local"
 "TacticalApiKey"="WSTAW-KLUCZ-API"
 "TacticalDashboardUrl"="https://rmm.TWOJA-DOMENA.local"
+
+; Opcjonalnie - tylko gdy API dziala na http:// (klucz API leci wtedy
+; otwartym tekstem). 1 = zezwol, 0 = blokuj (domyslnie).
+;"TacticalAllowInsecureHttp"="1"

@@ -68,6 +68,22 @@ namespace NarzedziaIP
                 return;
             }
 
+            // Weryfikacja SHA-256 pobranej paczki (hash z notatek release'a).
+            // Niezgodny hash = paczka nie trafia do instalatora.
+            try
+            {
+                Updater.VerifyAssetSha256(dest, _info.Sha256);
+            }
+            catch (Exception ex)
+            {
+                DownloadFailed = true;
+                Cleanup(dest);
+                Debug.WriteLine("Boot update SHA-256 verification failed: " + ex);
+                DialogResult = false;
+                Close();
+                return;
+            }
+
             try
             {
                 string bundled = Path.Combine(Updater.AppDir(), Updater.UpdaterExeName);

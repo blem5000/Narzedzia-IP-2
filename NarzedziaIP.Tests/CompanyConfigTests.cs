@@ -70,6 +70,60 @@ namespace NarzedziaIP.Tests
                 catch { }
             }
         }
+
+        [TestMethod]
+        public void ReadBoolParsesRegistryText()
+        {
+            string path = @"Software\NarzedziaIP2_Tests_" + System.Guid.NewGuid().ToString("N");
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(path))
+                {
+                    key.SetValue("Tak", "1");
+                    key.SetValue("Text", "true");
+                    key.SetValue("TakPoPolsku", "tak");
+                    key.SetValue("Nie", "0");
+                    key.SetValue("FalseText", "false");
+                    key.SetValue("Smiec", "moze");
+                }
+                Assert.AreEqual(true, CompanyConfig.ReadBool("Tak", path));
+                Assert.AreEqual(true, CompanyConfig.ReadBool("Text", path));
+                Assert.AreEqual(true, CompanyConfig.ReadBool("TakPoPolsku", path));
+                Assert.AreEqual(false, CompanyConfig.ReadBool("Nie", path));
+                Assert.AreEqual(false, CompanyConfig.ReadBool("FalseText", path));
+                Assert.IsNull(CompanyConfig.ReadBool("Smiec", path), "nieczytelna wartosc = brak decyzji");
+                Assert.IsNull(CompanyConfig.ReadBool("BrakWRejestrze", path));
+            }
+            finally
+            {
+                try { Registry.CurrentUser.DeleteSubKeyTree(path); }
+                catch { }
+            }
+        }
+
+        [TestMethod]
+        public void AllowInsecureHttpRegistryWins()
+        {
+            var reg = new CompanyConfig.TacticalConfig { AllowInsecureHttp = true };
+            var user = new CompanyConfig.TacticalConfig { AllowInsecureHttp = false };
+            Assert.AreEqual(true, CompanyConfig.Merge(reg, user).AllowInsecureHttp);
+
+            var regFalse = new CompanyConfig.TacticalConfig { AllowInsecureHttp = false };
+            var userTrue = new CompanyConfig.TacticalConfig { AllowInsecureHttp = true };
+            Assert.AreEqual(false, CompanyConfig.Merge(regFalse, userTrue).AllowInsecureHttp);
+        }
+
+        [TestMethod]
+        public void AllowInsecureHttpFallsBackToUserWhenRegistrySilent()
+        {
+            var m = CompanyConfig.Merge(
+                new CompanyConfig.TacticalConfig(),
+                new CompanyConfig.TacticalConfig { AllowInsecureHttp = true });
+            Assert.AreEqual(true, m.AllowInsecureHttp);
+
+            var m2 = CompanyConfig.Merge(null, null);
+            Assert.IsNull(m2.AllowInsecureHttp);
+        }
     }
 
     [TestClass]

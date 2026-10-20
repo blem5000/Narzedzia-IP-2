@@ -364,6 +364,20 @@ namespace NarzedziaIPUpdater
                 return;
             }
 
+            // Weryfikacja SHA-256 pobranej paczki (hash z notatek release'a).
+            // Niezgodny hash = paczka nie trafia do instalacji.
+            try
+            {
+                global::NarzedziaIP.Updater.VerifyAssetSha256(dest, info.Sha256);
+            }
+            catch (Exception ex)
+            {
+                try { if (dest != null) File.Delete(dest); }
+                catch { }
+                Fail(ex);
+                return;
+            }
+
             try
             {
                 await Task.Run(() =>

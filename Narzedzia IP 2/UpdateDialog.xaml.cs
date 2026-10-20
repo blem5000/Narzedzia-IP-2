@@ -68,6 +68,24 @@ namespace NarzedziaIP
                 return;
             }
 
+            // Weryfikacja SHA-256 pobranej paczki (hash z notatek release'a).
+            // Niezgodny hash = paczka nie trafia do instalatora.
+            try
+            {
+                Updater.VerifyAssetSha256(dest, _info.Sha256);
+            }
+            catch (Exception ex)
+            {
+                Cleanup(dest);
+                lblStatus.Text = string.Empty;
+                btnInstall.IsEnabled = true;
+                btnSkip.IsEnabled = true;
+                btnLater.IsEnabled = true;
+                MessageBox.Show(this, "Błąd weryfikacji pobranej aktualizacji:\n\n" + ex.Message,
+                    "Aktualizacja", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             // No extra confirmation: the user already chose Download&Install.
             try
             {

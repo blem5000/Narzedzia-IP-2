@@ -346,5 +346,136 @@ namespace NarzedziaIP.Tests
                     catch { }
             }
         }
+
+        [TestMethod]
+        public void ApplyScriptPassesPathsViaEnvironment()
+        {
+            // Sciezki nie moga byc wkładane w cudzyslowy PowerShella -
+            // apostrof w sciezce rozbilby '...' i skrypt wysypalby sie
+            // (albo, gorzej, wstrzyknal komende).
+            string zip = Path.Combine(_tmp, "u.zip");
+            File.WriteAllText(zip, "x");
+            string bat = null;
+            try
+            {
+                bat = Updater.WriteApplyScript(zip, _tmp, 1234);
+                string content = File.ReadAllText(bat);
+                StringAssert.Contains(content, "$env:ZIP");
+                StringAssert.Contains(content, "$env:STAGE");
+                Assert.IsFalse(content.Contains("-LiteralPath '"),
+                    "sciezka nie moze byc wkładana w cudzyslowy PowerShella");
+            }
+            finally
+            {
+                if (bat != null)
+                    try { File.Delete(bat); }
+                    catch { }
+            }
+        }
+    }
+
+    [TestClass]
+    public class UpdaterSha256Tests
+    {
+        private const string ValidHash =
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+        private string _tmp;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            _tmp = Path.Combine(Path.GetTempPath(), "narz_sha_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_tmp);
+        }
+
+        [TestCleanup]
+        public void Teardown()
+        {
+            try { Directory.Delete(_tmp, true); }
+            catch { }
+        }
+
+        [TestMethod]
+        public void ParsesHashFromReleaseNotes()
+        {
+            string body = "Automatyczny release z CI.\n\nSHA256: " + ValidHash + "\n";
+            Assert.AreEqual(ValidHash, Updater.ParseReleaseSha256(body));
+        }
+
+        [TestMethod]
+        public void ParsesHashWithEqualsAndSpaces()
+        {
+            Assert.AreEqual(ValidHash, Updater.ParseReleaseSha256("SHA256=" + ValidHash));
+            Assert.AreEqual(ValidHash, Updater.ParseReleaseSha256("sha256:   " + ValidHash.ToUpperInvariant()));
+        }
+
+        [TestMethod]
+        public void NoHashInNotesGivesNull()
+        {
+            Assert.IsNull(Updater.ParseReleaseSha256(null));
+            Assert.IsNull(Updater.ParseReleaseSha256(""));
+            Assert.IsNull(Updater.ParseReleaseSha256("Release bez hasha."));
+            Assert.IsNull(Updater.ParseReleaseSha256("SHA256: za-krotki"),
+                "hash musi miec 64 znaki hex");
+        }
+
+        [TestMethod]
+        public void ReleaseJsonCarriesHash()
+        {
+            string json = "{\"tag_name\":\"v1.1.26\",\"name\":\"v1.1.26\",\"body\":\"SHA256: " + ValidHash + "\","
+                + "\"assets\":[{\"name\":\"NarzedziaIP2-windows.zip\","
+                + "\"browser_download_url\":\"https://example.com/main.zip\",\"size\":1}]}";
+            ReleaseInfo r = Updater.ParseReleaseJson(json);
+            Assert.AreEqual(ValidHash, r.Sha256);
+        }
+
+        [TestMethod]
+        public void ComputesHashOfFile()
+        {
+            string file = Path.Combine(_tmp, "dane.txt");
+            File.WriteAllText(file, "abc");
+            // sha256("abc")
+            Assert.AreEqual(
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+                Updater.ComputeFileSha256(file));
+        }
+
+        [TestMethod]
+        public void VerifyPassesForMatchingHash()
+        {
+            string file = Path.Combine(_tmp, "dane.txt");
+            File.WriteAllText(file, "abc");
+            string hash = Updater.ComputeFileSha256(file);
+            Updater.VerifyAssetSha256(file, hash); // nie rzuca
+            Updater.VerifyAssetSha256(file, hash.ToUpperInvariant()); // case-insensitive
+        }
+
+        [TestMethod]
+        public void VerifyThrowsForMismatchedHash()
+        {
+            string file = Path.Combine(_tmp, "dane.txt");
+            File.WriteAllText(file, "abc");
+            try
+            {
+                Updater.VerifyAssetSha256(file, ValidHash);
+                Assert.Fail("niezgodny SHA-256 powinien przerwac aktualizacje");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "SHA-256");
+            }
+        }
+
+        [TestMethod]
+        public void VerifySkipsWhenNoHashPublished()
+        {
+            // Starsze release'y nie maja hasha - pomijamy weryfikacje,
+            // inaczej aktualizacja do v1.1.25 bylaby niemozliwa.
+            string file = Path.Combine(_tmp, "dane.txt");
+            File.WriteAllText(file, "abc");
+            Updater.VerifyAssetSha256(file, null);
+            Updater.VerifyAssetSha256(file, "");
+        }
     }
 }

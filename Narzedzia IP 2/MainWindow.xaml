@@ -568,6 +568,10 @@
                             <TextBlock Text="Dashboard:" Width="90" VerticalAlignment="Center"/>
                             <TextBox x:Name="txtTacticalDashboardUrl" Width="300" Height="28" VerticalContentAlignment="Center"/>
                         </StackPanel>
+                        <CheckBox x:Name="chkTacticalAllowInsecure"
+                                  Margin="0,8,0,0"
+                                  Content="Zezwól na nieszyfrowane HTTP do API Tactical (klucz API leci wtedy otwartym tekstem)"
+                                  ToolTip="Wymagane dla instalacji z API Tactical pod adresem http://. Klucz API jest wtedy przesyłany bez szyfrowania."/>
                     </StackPanel>
 
                     <TextBlock Text="ACL - podsieci, nazwy i numeracja:"
@@ -1146,6 +1150,19 @@
                                 <Bold>TacticalRMM-config-TEMPLATE.reg</Bold>
                                 obok programu - uzupełnij, połóż na share
                                 i kliknij dwukrotnie (uprawnienia admina zbędne).
+                            </Paragraph>
+
+                            <Paragraph>
+                                <Bold>Bezpieczeństwo połączenia:</Bold>
+                                klucz API to dane wrażliwe, więc program domyślnie
+                                odmawia łączenia z API Tactical pod adresem
+                                <Italic>http://</Italic> - klucz leciałby wtedy
+                                otwartym tekstem. Dopuszczone są <Italic>https://</Italic>
+                                oraz adresy lokalne (localhost, 127.0.0.1).
+                                Jeśli w Twojej sieci API działa bez TLS, zaznacz
+                                w Ustawieniach opcję <Italic>„Zezwól na
+                                nieszyfrowane HTTP do API Tactical"</Italic>
+                                (w rejestrze: <Italic>TacticalAllowInsecureHttp=1</Italic>).
                             </Paragraph>
 
                             <Paragraph>

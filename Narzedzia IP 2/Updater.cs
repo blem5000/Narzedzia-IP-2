@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,6 +41,11 @@ namespace NarzedziaIP
         public string Body { get; set; }
         public string ZipUrl { get; set; }
         public long ZipSize { get; set; }
+
+        // SHA-256 paczki opisany w notatkach release'a (CI wstawia "SHA256: ...").
+        // null = release starszy niz weryfikacja - wtedy sprawdzamy tylko
+        // wtedy, gdy hash jest dostępny.
+        public string Sha256 { get; set; }
     }
 
     public sealed class DownloadProgress
@@ -335,8 +341,91 @@ namespace NarzedziaIP
                 Name = name,
                 Body = body,
                 ZipUrl = url,
-                ZipSize = size
+                ZipSize = size,
+                Sha256 = ParseReleaseSha256(body)
             };
+        }
+
+        // Wyciaga hash SHA-256 z notatek release'a. CI wstawia w opisie
+        // linie "SHA256: <64 znaki hex>". Szukamy etykiety, nie pierwszego
+        // hexu w tekście.
+        public static string ParseReleaseSha256(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+
+            const string label = "SHA256";
+            string[] lines = body.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string line in lines)
+            {
+                string t = line.Trim();
+                int idx = t.IndexOf(label, StringComparison.OrdinalIgnoreCase);
+                if (idx < 0)
+                    continue;
+
+                string rest = t.Substring(idx + label.Length).TrimStart();
+                if (rest.StartsWith(":", StringComparison.Ordinal))
+                    rest = rest.Substring(1).Trim();
+                else if (rest.StartsWith("=", StringComparison.Ordinal))
+                    rest = rest.Substring(1).Trim();
+
+                StringBuilder hex = new StringBuilder(64);
+                foreach (char c in rest)
+                {
+                    if (hex.Length == 0 && !Uri.IsHexDigit(c))
+                        break;
+                    if (!Uri.IsHexDigit(c))
+                        break;
+                    hex.Append(c);
+                }
+
+                if (hex.Length == 64)
+                    return hex.ToString().ToLowerInvariant();
+            }
+            return null;
+        }
+
+        // SHA-256 pliku (paczki aktualizacji).
+        public static string ComputeFileSha256(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return null;
+            try
+            {
+                using (SHA256 sha = SHA256.Create())
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    byte[] hash = sha.ComputeHash(fs);
+                    StringBuilder sb = new StringBuilder(64);
+                    foreach (byte b in hash)
+                        sb.Append(b.ToString("x2"));
+                    return sb.ToString();
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Sprawdza paczke wzglem oczekiwanego SHA-256. Brak hasha = release
+        // starszy niz weryfikacja (pomijamy). Niezgodny hash = przerwanie
+        // aktualizacji, paczka nie trafia do instalacji.
+        public static void VerifyAssetSha256(string zipPath, string expected)
+        {
+            if (string.IsNullOrWhiteSpace(expected))
+                return; // brak hasha w opisie release'a - pomijamy weryfikacje
+
+            string actual = ComputeFileSha256(zipPath);
+            if (actual == null)
+                throw new InvalidOperationException("Nie udalo sie policzyc SHA-256 paczki: " + zipPath);
+
+            if (!string.Equals(actual, expected.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Niezgodny SHA-256 paczki aktualizacji. Oczekiwano " + expected.Trim()
+                    + ", otrzymano " + actual + ". Aktualizacja przerwana.");
+            }
         }
 
         public static async Task DownloadAssetAsync(string url, string destPath, IProgress<DownloadProgress> progress, CancellationToken cancel)
@@ -792,7 +881,7 @@ namespace NarzedziaIP
             bat.AppendLine("if exist \"%STAGE%\" rmdir /s /q \"%STAGE%\"");
             bat.AppendLine("mkdir \"%STAGE%\"");
             bat.AppendLine("powershell -NoProfile -ExecutionPolicy Bypass -Command "
-                + "\"Expand-Archive -LiteralPath '\"%ZIP%\"' -DestinationPath '\"%STAGE%\"' -Force\" >> \"%LOG%\" 2>&1");
+                + "\"Expand-Archive -LiteralPath $env:ZIP -DestinationPath $env:STAGE -Force\" >> \"%LOG%\" 2>&1");
             bat.AppendLine("if errorlevel 1 (");
             bat.AppendLine("  echo Update failed: cannot extract zip. See \"%LOG%\". >> \"%LOG%\"");
             bat.AppendLine("  start \"\" /wait cmd /c \"echo Update failed while extracting. See \"%LOG%\" & pause\"");

@@ -18,13 +18,18 @@ namespace NarzedziaIP
             public string ApiKey;
             public string DashboardUrl;
 
+            // null = brak decyzji (uzyj ustawienia uzytkownika).
+            // true = zgoda na nieszyfrowane HTTP do API Tactical.
+            public bool? AllowInsecureHttp;
+
             public bool AnyPresent
             {
                 get
                 {
                     return !string.IsNullOrWhiteSpace(ApiUrl)
                         || !string.IsNullOrWhiteSpace(ApiKey)
-                        || !string.IsNullOrWhiteSpace(DashboardUrl);
+                        || !string.IsNullOrWhiteSpace(DashboardUrl)
+                        || AllowInsecureHttp.HasValue;
                 }
             }
         }
@@ -64,8 +69,32 @@ namespace NarzedziaIP
             {
                 ApiUrl = ReadValue("TacticalApiUrl"),
                 ApiKey = ReadValue("TacticalApiKey"),
-                DashboardUrl = ReadValue("TacticalDashboardUrl")
+                DashboardUrl = ReadValue("TacticalDashboardUrl"),
+                AllowInsecureHttp = ReadBool("TacticalAllowInsecureHttp", RegistryPath)
             };
+        }
+
+        // Rejestr trzyma wartosci jako tekst ("1"/"true"/"tak" itd.).
+        // null = wartosc nieustalona (brak wpisu albo nieczytelna).
+        public static bool? ReadBool(string name, string rootPath)
+        {
+            string s = ReadValue(name, rootPath);
+            if (string.IsNullOrWhiteSpace(s))
+                return null;
+            string v = s.Trim();
+            if (v.Equals("1", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("true", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("yes", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("tak", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("on", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (v.Equals("0", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("false", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("no", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("nie", StringComparison.OrdinalIgnoreCase)
+                || v.Equals("off", StringComparison.OrdinalIgnoreCase))
+                return false;
+            return null;
         }
 
         // Czyste scalanie: rejestr wygrywa, puste wpisy nie nadpisują.
@@ -79,7 +108,8 @@ namespace NarzedziaIP
             {
                 ApiUrl = FirstNonEmpty(reg.ApiUrl, user.ApiUrl),
                 ApiKey = FirstNonEmpty(reg.ApiKey, user.ApiKey),
-                DashboardUrl = FirstNonEmpty(reg.DashboardUrl, user.DashboardUrl)
+                DashboardUrl = FirstNonEmpty(reg.DashboardUrl, user.DashboardUrl),
+                AllowInsecureHttp = reg.AllowInsecureHttp ?? user.AllowInsecureHttp
             };
         }
 

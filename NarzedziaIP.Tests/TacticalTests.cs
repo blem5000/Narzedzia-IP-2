@@ -342,4 +342,43 @@ namespace NarzedziaIP.Tests
             }
         }
     }
+
+    [TestClass]
+    public class TacticalSecureUrlTests
+    {
+        [DataTestMethod]
+        [DataRow("https://api.rmm.local", true)]
+        [DataRow("HTTPS://API.RMM.LOCAL", true)]
+        [DataRow("https://api.rmm.local:8443/agents/", true)]
+        [DataRow("http://localhost:8000", true)]
+        [DataRow("http://127.0.0.1:8000", true)]
+        [DataRow("http://[::1]:8000", true)]
+        [DataRow("http://api.rmm.local", false)]
+        [DataRow("http://192.168.1.50:8000", false)]
+        [DataRow("ftp://api.rmm.local", false)]
+        [DataRow("file:///C:/temp/x", false)]
+        [DataRow("api.rmm.local", false)]
+        [DataRow("", false)]
+        [DataRow(null, false)]
+        public void IsSecureApiUrl(string url, bool expected)
+        {
+            Assert.AreEqual(expected, TacticalRmm.IsSecureApiUrl(url));
+        }
+
+        [TestMethod]
+        public async Task InsecureUrlIsRejected()
+        {
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+                TacticalRmm.GetAgentsAsync("http://api.rmm.local", "klucz", 5, false));
+        }
+
+        [TestMethod]
+        public async Task MissingConfigThrowsBeforeAnyRequest()
+        {
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+                TacticalRmm.GetAgentsAsync(null, "klucz", 5, false));
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+                TacticalRmm.GetAgentsAsync("https://api.rmm.local", null, 5, false));
+        }
+    }
 }
