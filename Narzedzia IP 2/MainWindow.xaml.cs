@@ -193,9 +193,9 @@ namespace NarzedziaIP
         }
 
         // Przycisk "Polacz" - laczy sposobem wybranym w radio buttonach.
-        private void btnConnect_Click(object sender, RoutedEventArgs e)
+        private async void btnConnect_Click(object sender, RoutedEventArgs e)
         {
-            StartSelectedConnection();
+            await StartSelectedConnection();
         }
 
         private async void btnStartPing_Click(object sender, RoutedEventArgs e)
@@ -637,7 +637,7 @@ namespace NarzedziaIP
                 HistoryLog.Append(label, input, input, "Połączenie " + label + " bez wyszukiwania DHCP");
 
                 SetStatus("Łączę z komputerem...");
-                StartSelectedConnection();
+                await StartSelectedConnection();
                 return;
             }
 
@@ -646,7 +646,7 @@ namespace NarzedziaIP
             // Komunikat z fazy wyszukiwania ("Szukam w DHCP...") musi zostac
             // zastapiony - teraz program sie laczy.
             SetStatus("Łączę z komputerem...");
-            StartSelectedConnection();
+            await StartSelectedConnection();
         }
 
         // ============================================================
@@ -1029,6 +1029,8 @@ namespace NarzedziaIP
         {
             try
             {
+                if (rbtnConnTactical != null && rbtnConnTactical.IsChecked == true)
+                    return ConnectMethod.Tactical;
                 if (rbtnConnRDP != null && rbtnConnRDP.IsChecked == true)
                     return ConnectMethod.Rdp;
                 if (rbtnConnMSRA != null && rbtnConnMSRA.IsChecked == true)
@@ -1048,9 +1050,11 @@ namespace NarzedziaIP
             // tylko wtedy, gdy wybor jest juz ustalony
             try
             {
-                if (rbtnConnMSRA == null || rbtnConnRDP == null)
+                if (rbtnConnMSRA == null || rbtnConnRDP == null || rbtnConnTactical == null)
                     return;
-                if (rbtnConnMSRA.IsChecked != true && rbtnConnRDP.IsChecked != true)
+                if (rbtnConnMSRA.IsChecked != true
+                    && rbtnConnRDP.IsChecked != true
+                    && rbtnConnTactical.IsChecked != true)
                     return;
 
                 var s = global::Narzedzia_IP_2.Properties.Settings.Default;
@@ -1066,17 +1070,26 @@ namespace NarzedziaIP
             try
             {
                 string saved = global::Narzedzia_IP_2.Properties.Settings.Default.ConnectMethod;
-                bool rdp = ConnectMethod.IsRdp(saved);
-                rbtnConnRDP.IsChecked = rdp;
-                rbtnConnMSRA.IsChecked = !rdp;
+                string method = ConnectMethod.Normalize(saved);
+                rbtnConnTactical.IsChecked = method == ConnectMethod.Tactical;
+                rbtnConnRDP.IsChecked = method == ConnectMethod.Rdp;
+                rbtnConnMSRA.IsChecked = method == ConnectMethod.Msra;
             }
             catch (Exception err) { AppLog.Error(err); }
         }
 
         // Laczy z aktualnie wyswietlonym adresem wybranym sposobem.
-        private void StartSelectedConnection()
+        private async Task StartSelectedConnection()
         {
-            if (ConnectMethod.IsRdp(SelectedConnectMethod()))
+            string method = SelectedConnectMethod();
+
+            if (ConnectMethod.IsTactical(method))
+            {
+                await ConnectTacticalAsync();
+                return;
+            }
+
+            if (ConnectMethod.IsRdp(method))
                 StartRDP();
             else
                 StartMSRA();
@@ -1446,6 +1459,14 @@ namespace NarzedziaIP
         }
 
         private async void btnTactical_Click(object sender, RoutedEventArgs e)
+        {
+            await ConnectTacticalAsync();
+        }
+
+        // Polaczenie z komputerem przez TacticalRMM (pulpit Mesh).
+        // Uzywane przez przycisk Tactical i przez sposob polaczenia
+        // "TacticalRMM" w radio buttonach.
+        private async Task ConnectTacticalAsync()
         {
             string host = null;
             string apiUrl = null;

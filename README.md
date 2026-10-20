@@ -74,7 +74,7 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | `DhcpClient.cs` | budowa komend PowerShell, parsowanie odpowiedzi, cache zakresów |
 | `PingHelper.cs` / `PingMonitor.cs` | ping i statystyki (`PingStats`, `PingRow`) |
 | `TacticalRmm.cs` | REST API TacticalRMM, parsowanie, cache agentów |
-| `ConnectMethod.cs` | sposób połączenia (MSRA / RDP) — zapamiętywany w ustawieniach |
+| `ConnectMethod.cs` | sposób połączenia (MSRA / RDP / TacticalRMM) — zapamiętywany w ustawieniach |
 | `CompanyConfig.cs` | konfiguracja z rejestru `HKCU\Software\NarzedziaIP2` + DPAPI |
 | `AppLog.cs` | log błędów (`%LOCALAPPDATA%\NarzedziaIP2\bledy.log`) |
 | `Updater.cs` | API GitHub, pobieranie, walidacja i rozpakowywanie paczki |

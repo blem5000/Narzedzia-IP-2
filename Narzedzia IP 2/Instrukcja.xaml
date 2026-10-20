@@ -125,8 +125,12 @@
         </Paragraph>
 
         <Paragraph>
-            <Bold>Sposób połączenia (MSRA / RDP):</Bold>
+            <Bold>Sposób połączenia (MSRA / RDP / TacticalRMM):</Bold>
             przełączniki wybierają, czym program łączy się z komputerem.
+            MSRA uruchamia Pomoc zdalną Microsoft Remote Assistance,
+            RDP uruchamia Podłączanie pulpitu zdalnego (mstsc),
+            TacticalRMM otwiera pulpit komputera w dashboardzie TacticalRMM
+            (ten sam Mesh, co przycisk Tactical).
             Wybór zapamiętywany jest w ustawieniach, więc po zamknięciu
             i ponownym uruchomieniu programu pozostaje taki sam.
         </Paragraph>
@@ -134,9 +138,7 @@
         <Paragraph>
             <Bold>Przycisk Połącz:</Bold>
             łączy z aktualnie wyświetlonym adresem IP sposobem wybranym
-            powyżej. MSRA uruchamia Pomoc zdalną Microsoft Remote Assistance,
-            RDP uruchamia Podłączanie pulpitu zdalnego (mstsc).
-            Gdy na komputerze nie ma pliku msra.exe, program zaproponuje
+            powyżej. Gdy na komputerze nie ma pliku msra.exe, program zaproponuje
             połączenie przez RDP.
         </Paragraph>
 

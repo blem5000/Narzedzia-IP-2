@@ -97,6 +97,11 @@
                                          Checked="rbtnConn_Checked"/>
                             <RadioButton x:Name="rbtnConnRDP"
                                          Content="RDP"
+                                         Margin="0,0,15,0"
+                                         VerticalAlignment="Center"
+                                         Checked="rbtnConn_Checked"/>
+                            <RadioButton x:Name="rbtnConnTactical"
+                                         Content="TacticalRMM"
                                          VerticalAlignment="Center"
                                          Checked="rbtnConn_Checked"/>
                         </StackPanel>
