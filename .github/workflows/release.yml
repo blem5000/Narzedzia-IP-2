@@ -24,6 +24,31 @@ jobs:
       - name: Build
         run: msbuild "Narzedzia IP 2.sln" -p:Configuration=Release -v:minimal -nologo
 
+      # Tag musi odpowiadac AssemblyVersion/FileVersion w zbudowanych exe.
+      # Bez tego zapomniane podbicie wersji = release z 1.1.25 oznaczony jako
+      # v1.1.26, a updater widzi "jestem starszy" i zapetla sie w aktualizacji.
+      - name: Verify version matches tag
+        shell: powershell
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "Tag '$tag' nie jest w formacie vX.Y.Z" }
+          $expected = $tag -replace '^v', ''
+          $files = @(
+            "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe",
+            "NarzedziaIP.Updater\bin\Release\NarzedziaIP.Updater.exe"
+          )
+          foreach ($f in $files) {
+            if (-not (Test-Path $f)) { throw "Brak zbudowanego pliku: $f" }
+            $raw = (Get-Item $f).VersionInfo.FileVersion
+            if ([string]::IsNullOrWhiteSpace($raw)) { throw "Brak FileVersion w pliku: $f" }
+            $ver = [System.Version]$raw
+            $short = "$($ver.Major).$($ver.Minor).$($ver.Build)"
+            if ($short -ne $expected) {
+              throw "Wersja nie zgadza sie z tagiem: tag=$expected, a $f ma $raw. Podbij AssemblyVersion i AssemblyFileVersion w 'Narzedzia IP 2\Properties\AssemblyInfo.cs' oraz 'NarzedziaIP.Updater\Properties\AssemblyInfo.cs'."
+            }
+          }
+          Write-Host "Wersja zgodna z tagiem: $expected"
+
       - name: Test
         shell: powershell
         run: |
