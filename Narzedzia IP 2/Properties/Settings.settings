@@ -67,5 +67,8 @@
     <Setting Name="TacticalAllowInsecureHttp" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="ConnectMethod" Type="System.String" Scope="User">
+      <Value Profile="(Default)">msra</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

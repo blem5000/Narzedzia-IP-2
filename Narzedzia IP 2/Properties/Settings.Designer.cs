@@ -341,5 +341,20 @@ namespace Narzedzia_IP_2.Properties
                 this["TacticalAllowInsecureHttp"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("msra")]
+        public string ConnectMethod
+        {
+            get
+            {
+                return ((string)(this["ConnectMethod"]));
+            }
+            set
+            {
+                this["ConnectMethod"] = value;
+            }
+        }
     }
 }

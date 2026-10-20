@@ -58,7 +58,8 @@
             <ListItem>
                 <Paragraph>
                     Jeśli wpisano
-                    <Bold>adres IP</Bold> , program nie odpytuje DHCP i od razu uruchamia MSRA dla tego adresu.
+                    <Bold>adres IP</Bold> , program nie odpytuje DHCP i od razu
+                    łączy się wybranym sposobem (MSRA albo RDP) dla tego adresu.
                 </Paragraph>
             </ListItem>
             <ListItem>
@@ -124,22 +125,33 @@
         </Paragraph>
 
         <Paragraph>
-            <Bold>Przycisk MSRA:</Bold>
-                Uruchamia Pomoc zdalną Microsoft Remote Assistance dla aktualnie wyświetlonego adresu IP.
-                Gdy na komputerze nie ma pliku msra.exe, program zaproponuje połączenie przez RDP.
+            <Bold>Sposób połączenia (MSRA / RDP):</Bold>
+            przełączniki wybierają, czym program łączy się z komputerem.
+            Wybór zapamiętywany jest w ustawieniach, więc po zamknięciu
+            i ponownym uruchomieniu programu pozostaje taki sam.
         </Paragraph>
 
         <Paragraph>
-            <Bold>Przycisk RDP:</Bold>
-                Uruchamia Podłączanie pulpitu zdalnego (mstsc) dla wybranego adresu IP.
-                Wymaga włączonego RDP na komputerze docelowym.
+            <Bold>Przycisk Połącz:</Bold>
+            łączy z aktualnie wyświetlonym adresem IP sposobem wybranym
+            powyżej. MSRA uruchamia Pomoc zdalną Microsoft Remote Assistance,
+            RDP uruchamia Podłączanie pulpitu zdalnego (mstsc).
+            Gdy na komputerze nie ma pliku msra.exe, program zaproponuje
+            połączenie przez RDP.
+        </Paragraph>
+
+        <Paragraph>
+            <Bold>Przycisk Pokaż w RMM:</Bold>
+            otwiera stronę komputera w dashboardzie TacticalRMM
+            (stan, historia, zadania) - bez przechodzenia do pulpitu.
+            Do pulpitu (Mesh) przechodzi przycisk Tactical.
         </Paragraph>
 
         <List>
             <ListItem>
                 <Paragraph>
                     Jeśli znaleziono więcej niż jeden aktywny adres IP, wybierz właściwy
-                    z listy wyników - MSRA, RDP i kopiowanie zadziałają dla wybranego adresu.
+                    z listy wyników - połączenie i kopiowanie zadziałają dla wybranego adresu.
                     Bez wyboru program poprosi o wskazanie adresu zamiast zgadywać.
                 </Paragraph>
             </ListItem>

@@ -25,6 +25,7 @@ namespace NarzedziaIP
 
             LoadAclSettings();
             LoadTacticalSettings();
+            LoadConnectMethod();
             try
             {
                 string mf = global::Narzedzia_IP_2.Properties.Settings.Default.MacFormat;

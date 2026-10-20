@@ -48,6 +48,7 @@
     <Compile Include="AppLogTests.cs" />
     <Compile Include="ClipboardHelperTests.cs" />
     <Compile Include="CompanyConfigTests.cs" />
+    <Compile Include="ConnectMethodTests.cs" />
     <Compile Include="HistoryLogTests.cs" />
     <Compile Include="PingMacAclTests.cs" />
     <Compile Include="PingMonitorTests.cs" />

@@ -80,10 +80,28 @@
                     </StackPanel>
 
                     <!-- Buttons row -->
-                    <WrapPanel Grid.Row="1"
-                               Grid.Column="0"
-                               Margin="0,20,0,20"
-                               Orientation="Horizontal">
+                    <StackPanel Grid.Row="1"
+                                Grid.Column="0"
+                                Margin="0,20,0,20">
+
+                        <!-- Sposob polaczenia (zapamietywany) -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="Sposób połączenia:"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"/>
+                            <RadioButton x:Name="rbtnConnMSRA"
+                                         Content="MSRA"
+                                         Margin="0,0,15,0"
+                                         VerticalAlignment="Center"
+                                         Checked="rbtnConn_Checked"/>
+                            <RadioButton x:Name="rbtnConnRDP"
+                                         Content="RDP"
+                                         VerticalAlignment="Center"
+                                         Checked="rbtnConn_Checked"/>
+                        </StackPanel>
+
+                        <WrapPanel Orientation="Horizontal">
 
                         <Button x:Name="btnSearch"
                                 Content="Szukaj"
@@ -113,19 +131,13 @@
                                 Margin="0,0,10,10"
                                 Click="btnCopyMAC_Click"/>
 
-                        <Button x:Name="btnMSRA"
-                                Content="MSRA"
+                        <Button x:Name="btnConnect"
+                                Content="Połącz"
                                 Width="92"
                                 Height="40"
                                 Margin="0,0,10,10"
-                                Click="btnMSRA_Click"/>
-
-                        <Button x:Name="btnRDP"
-                                Content="RDP"
-                                Width="92"
-                                Height="40"
-                                Margin="0,0,10,10"
-                                Click="btnRDP_Click"/>
+                                ToolTip="Połączenie z wybranym sposobem (MSRA albo RDP)"
+                                Click="btnConnect_Click"/>
 
                         <Button x:Name="btnTactical"
                                 Content="Tactical"
@@ -135,7 +147,16 @@
                                 ToolTip="Otwórz pulpit w TacticalRMM"
                                 Click="btnTactical_Click"/>
 
-                    </WrapPanel>
+                        <Button x:Name="btnShowInRmm"
+                                Content="Pokaż w RMM"
+                                Width="105"
+                                Height="40"
+                                Margin="0,0,10,10"
+                                ToolTip="Otwórz stronę komputera w TacticalRMM"
+                                Click="btnShowInRmm_Click"/>
+
+                        </WrapPanel>
+                    </StackPanel>
 
                     <!-- Result box -->
                     <GroupBox Grid.Row="2"

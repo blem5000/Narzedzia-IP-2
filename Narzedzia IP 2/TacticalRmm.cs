@@ -50,6 +50,16 @@ namespace NarzedziaIP
             return baseUrl + "/takecontrol/" + agentId.Trim();
         }
 
+        // Strona komputera (agenta) w dashboardzie - podglad stanu, historia,
+        // zadania. Bez przechodzenia do pulpitu (to jest /takecontrol).
+        public static string AgentUrl(string dashboardUrl, string agentId)
+        {
+            string baseUrl = NormalizeBaseUrl(dashboardUrl);
+            if (baseUrl == null || string.IsNullOrWhiteSpace(agentId))
+                return null;
+            return baseUrl + "/agents/" + agentId.Trim();
+        }
+
         public static string ShortName(string hostname)
         {
             if (string.IsNullOrWhiteSpace(hostname))

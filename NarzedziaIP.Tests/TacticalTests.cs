@@ -39,6 +39,19 @@ namespace NarzedziaIP.Tests
             Assert.IsNull(TacticalRmm.TakeControlUrl("https://rmm.example.com", ""));
         }
 
+        [TestMethod]
+        public void AgentUrl()
+        {
+            // Strona komputera w RMM - inna sciezka niz pulpit (/takecontrol).
+            Assert.AreEqual("https://rmm.example.com/agents/abc-123",
+                TacticalRmm.AgentUrl("https://rmm.example.com/", "abc-123"));
+            Assert.AreEqual("https://rmm.example.com/agents/abc-123",
+                TacticalRmm.AgentUrl("https://rmm.example.com", "  abc-123  "));
+            Assert.IsNull(TacticalRmm.AgentUrl("", "abc-123"));
+            Assert.IsNull(TacticalRmm.AgentUrl("https://rmm.example.com", ""));
+            Assert.IsNull(TacticalRmm.AgentUrl(null, null));
+        }
+
         [DataTestMethod]
         [DataRow("PC123.DOMENA.LOCAL", "pc123")]
         [DataRow("PC123", "pc123")]
@@ -345,8 +358,7 @@ namespace NarzedziaIP.Tests
 
     [TestClass]
     public class TacticalSecureUrlTests
-    {
-        [DataTestMethod]
+    {        [DataTestMethod]
         [DataRow("https://api.rmm.local", true)]
         [DataRow("HTTPS://API.RMM.LOCAL", true)]
         [DataRow("https://api.rmm.local:8443/agents/", true)]

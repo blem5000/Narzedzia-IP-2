@@ -84,6 +84,7 @@
     </Compile>
     <Compile Include="App.Update.cs" />
     <Compile Include="AppLog.cs" />
+    <Compile Include="ConnectMethod.cs" />
     <Compile Include="AclWildcard.cs" />
     <Compile Include="HistoryLog.cs" />
     <Compile Include="AclInput.cs" />

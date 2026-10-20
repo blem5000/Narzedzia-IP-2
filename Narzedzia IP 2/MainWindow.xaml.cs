@@ -75,9 +75,8 @@ namespace NarzedziaIP
 
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
-            btnMSRA.IsEnabled = false;
-            btnRDP.IsEnabled = false;
-            btnTactical.IsEnabled = false;
+            btnConnect.IsEnabled = false;
+            SetRmmButtons(false, "Otwórz pulpit w TacticalRMM");
             btnStopPing.IsEnabled = false;
 
             txtHostname.KeyDown += txtHostname_KeyDown;
@@ -193,9 +192,10 @@ namespace NarzedziaIP
             catch (Exception err) { AppLog.Error(err); }
         }
 
-        private void btnMSRA_Click(object sender, RoutedEventArgs e)
+        // Przycisk "Polacz" - laczy sposobem wybranym w radio buttonach.
+        private void btnConnect_Click(object sender, RoutedEventArgs e)
         {
-            StartMSRA();
+            StartSelectedConnection();
         }
 
         private async void btnStartPing_Click(object sender, RoutedEventArgs e)
@@ -357,9 +357,8 @@ namespace NarzedziaIP
 
             btnCopyIP.IsEnabled = false;
             btnCopyMAC.IsEnabled = false;
-            btnMSRA.IsEnabled = false;
-            btnRDP.IsEnabled = false;
-            btnTactical.IsEnabled = false;
+            btnConnect.IsEnabled = false;
+            SetRmmButtons(false, "Otwórz pulpit w TacticalRMM");
 
             txtHostname.Focus();
         }
@@ -477,9 +476,8 @@ namespace NarzedziaIP
 
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
-                btnMSRA.IsEnabled = true;
-                btnRDP.IsEnabled = true;
-                btnTactical.IsEnabled = true;
+                btnConnect.IsEnabled = true;
+                SetRmmButtons(true, "Otwórz pulpit w TacticalRMM");
 
                 txtHistoria.AppendText(
                     $"{hostname}\tWpisano IP bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
@@ -554,8 +552,7 @@ namespace NarzedziaIP
 
                     btnCopyIP.IsEnabled = true;
                     btnCopyMAC.IsEnabled = true;
-                    btnMSRA.IsEnabled = true;
-                    btnRDP.IsEnabled = true;
+                    btnConnect.IsEnabled = true;
                     // UWAGA: nie wlaczamy tutaj btnTactical - jego stan
                     // ustawia CheckTacticalAgentAsync (wylacza, gdy agenta nie
                     // ma w TacticalRMM). Wlaczanie go tutaj cofalo ten stan
@@ -627,24 +624,29 @@ namespace NarzedziaIP
 
                 btnCopyIP.IsEnabled = true;
                 btnCopyMAC.IsEnabled = false;
-                btnMSRA.IsEnabled = true;
-                btnRDP.IsEnabled = true;
-                btnTactical.IsEnabled = true;
+                btnConnect.IsEnabled = true;
+                SetRmmButtons(true, "Otwórz pulpit w TacticalRMM");
 
+                string method = SelectedConnectMethod();
+                string label = ConnectMethod.Label(method);
                 txtHistoria.AppendText(
-                    $"{input}\tPołączenie MSRA bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
+                    $"{input}\tPołączenie {label} bez wyszukiwania DHCP\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}"
                 );
 
                 txtHistoria.ScrollToEnd();
-                HistoryLog.Append("MSRA", input, input, "Połączenie MSRA bez wyszukiwania DHCP");
+                HistoryLog.Append(label, input, input, "Połączenie " + label + " bez wyszukiwania DHCP");
 
-                StartMSRA();
+                SetStatus("Łączę z komputerem...");
+                StartSelectedConnection();
                 return;
             }
 
             await SzukajHostnameAsync();
 
-            StartMSRA();
+            // Komunikat z fazy wyszukiwania ("Szukam w DHCP...") musi zostac
+            // zastapiony - teraz program sie laczy.
+            SetStatus("Łączę z komputerem...");
+            StartSelectedConnection();
         }
 
         // ============================================================
@@ -921,6 +923,15 @@ namespace NarzedziaIP
         // MSRA
         // ============================================================
 
+        // Komunikat w pasku statusu. Kazda faza (szukanie / laczenie /
+        // uruchomienie) ustawia wlasny tekst, zeby uzytkownik widzial, co
+        // program w tej chwili robi.
+        private void SetStatus(string text)
+        {
+            try { txtStatus.Text = text ?? string.Empty; }
+            catch (Exception err) { AppLog.Error(err); }
+        }
+
         private void StartMSRA()
         {
             if (DistinctActiveIpCount() > 1 && string.IsNullOrWhiteSpace(SelectedLeaseIp()))
@@ -993,11 +1004,14 @@ namespace NarzedziaIP
                     UseShellExecute = false
                 };
 
+                SetStatus("Łączę przez MSRA z " + ip + "...");
                 HistoryLog.Append("MSRA", ip, ip, string.Empty);
                 Process.Start(psi);
+                SetStatus("MSRA uruchomione (" + ip + ").");
             }
             catch (Exception ex)
             {
+                SetStatus("Błąd uruchomienia MSRA.");
                 MessageBox.Show(
                     "Nie udało się uruchomić MSRA.\n\n" + ex.Message,
                     "Błąd MSRA",
@@ -1007,9 +1021,65 @@ namespace NarzedziaIP
             }
         }
 
-        private void btnRDP_Click(object sender, RoutedEventArgs e)
+        // ============================================================
+        // SPOSOB POLACZENIA (MSRA / RDP) - zapamietywany miedzy uruchomieniami
+        // ============================================================
+
+        private string SelectedConnectMethod()
         {
-            StartRDP();
+            try
+            {
+                if (rbtnConnRDP != null && rbtnConnRDP.IsChecked == true)
+                    return ConnectMethod.Rdp;
+                if (rbtnConnMSRA != null && rbtnConnMSRA.IsChecked == true)
+                    return ConnectMethod.Msra;
+            }
+            catch (Exception err) { AppLog.Error(err); }
+
+            string saved = null;
+            try { saved = global::Narzedzia_IP_2.Properties.Settings.Default.ConnectMethod; }
+            catch (Exception err) { AppLog.Error(err); }
+            return ConnectMethod.Normalize(saved);
+        }
+
+        private void rbtnConn_Checked(object sender, RoutedEventArgs e)
+        {
+            // event Checked odpala sie podczas tworzenia kontrolek - zapisuj
+            // tylko wtedy, gdy wybor jest juz ustalony
+            try
+            {
+                if (rbtnConnMSRA == null || rbtnConnRDP == null)
+                    return;
+                if (rbtnConnMSRA.IsChecked != true && rbtnConnRDP.IsChecked != true)
+                    return;
+
+                var s = global::Narzedzia_IP_2.Properties.Settings.Default;
+                s.ConnectMethod = SelectedConnectMethod();
+                s.Save();
+            }
+            catch (Exception err) { AppLog.Error(err); }
+        }
+
+        // Wczytuje zapisany sposob polaczenia (przy starcie programu).
+        private void LoadConnectMethod()
+        {
+            try
+            {
+                string saved = global::Narzedzia_IP_2.Properties.Settings.Default.ConnectMethod;
+                bool rdp = ConnectMethod.IsRdp(saved);
+                rbtnConnRDP.IsChecked = rdp;
+                rbtnConnMSRA.IsChecked = !rdp;
+            }
+            catch (Exception err) { AppLog.Error(err); }
+        }
+
+        // Laczy z aktualnie wyswietlonym adresem wybranym sposobem.
+        private void StartSelectedConnection()
+        {
+            if (ConnectMethod.IsRdp(SelectedConnectMethod()))
+                StartRDP();
+            else
+                StartMSRA();
         }
 
         private void StartRDP()
@@ -1081,11 +1151,14 @@ namespace NarzedziaIP
                     UseShellExecute = false
                 };
 
+                SetStatus("Łączę przez RDP z " + ip + "...");
                 HistoryLog.Append("RDP", ip, ip, string.Empty);
                 Process.Start(psi);
+                SetStatus("RDP uruchomione (" + ip + ").");
             }
             catch (Exception ex)
             {
+                SetStatus("Błąd uruchomienia RDP.");
                 MessageBox.Show(
                     "Nie udało się uruchomić RDP.\n\n" + ex.Message,
                     "Błąd RDP",
@@ -1103,10 +1176,22 @@ namespace NarzedziaIP
             _tacticalCheckedHost = null;
             try
             {
-                btnTactical.IsEnabled = true;
-                btnTactical.ToolTip = "Otwórz pulpit w TacticalRMM";
+                SetRmmButtons(true, "Otwórz pulpit w TacticalRMM");
             }
             catch (Exception err) { AppLog.Error(err); }
+        }
+
+        // Oba przyciski RMM (pulpit + strona komputera) maja wspolny stan.
+        private string _rmmTooltip = "Otwórz pulpit w TacticalRMM";
+
+        private void SetRmmButtons(bool enabled, string tooltip)
+        {
+            if (!string.IsNullOrWhiteSpace(tooltip))
+                _rmmTooltip = tooltip;
+            btnTactical.IsEnabled = enabled;
+            btnTactical.ToolTip = _rmmTooltip;
+            btnShowInRmm.IsEnabled = enabled;
+            btnShowInRmm.ToolTip = _rmmTooltip;
         }
 
         private async Task CheckTacticalAgentAsync(string hostname)
@@ -1116,6 +1201,10 @@ namespace NarzedziaIP
             GetEffectiveTactical(out apiUrl, out apiKey, out string _, out bool allowInsecure);
             if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey))
                 return; // brak konfiguracji - przycisk działa jak dotąd
+
+            // Komunikat fazy: bez tego uzytkownik widzi wciaz "Szukam w DHCP...",
+            // a program juz dawno znalazl adres i odpytuje tylko TacticalRMM.
+            SetStatus("Sprawdzam w TacticalRMM...");
 
             TacticalAgent found = null;
             try
@@ -1135,16 +1224,14 @@ namespace NarzedziaIP
             {
                 if (found != null)
                 {
-                    btnTactical.IsEnabled = true;
                     string extra = found.IsOffline
                         ? $" (OFFLINE, ost. widziany: {found.LastSeen})"
                         : string.Empty;
-                    btnTactical.ToolTip = $"TacticalRMM: {found.Hostname} ({found.AgentId}){extra}";
+                    SetRmmButtons(true, $"TacticalRMM: {found.Hostname} ({found.AgentId}){extra}");
                 }
                 else
                 {
-                    btnTactical.IsEnabled = false;
-                    btnTactical.ToolTip = "Nie znaleziono komputera w TacticalRMM";
+                    SetRmmButtons(false, "Nie znaleziono komputera w TacticalRMM");
                 }
             }
             catch (Exception err) { AppLog.Error(err); }
@@ -1308,9 +1395,16 @@ namespace NarzedziaIP
             }
         }
 
-        private async void btnTactical_Click(object sender, RoutedEventArgs e)
+        // Wspolne sprawdzenie dla obu przyciskow RMM. Zwraca false, gdy
+        // uzytkownik nie ma hosta albo konfiguracji (komunikat juz pokazany).
+        private bool PrepareTacticalAction(out string host, out string apiUrl, out string apiKey, out string dashUrl, out bool allowInsecure)
         {
-            string host = ResolveTacticalHostname();
+            host = ResolveTacticalHostname();
+            apiUrl = null;
+            apiKey = null;
+            dashUrl = null;
+            allowInsecure = false;
+
             if (string.IsNullOrWhiteSpace(host))
             {
                 MessageBox.Show(
@@ -1318,13 +1412,10 @@ namespace NarzedziaIP
                     "TacticalRMM",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
-                return;
+                return false;
             }
 
-            string apiUrl = null;
-            string apiKey = null;
-            string dashUrl = null;
-            GetEffectiveTactical(out apiUrl, out apiKey, out dashUrl, out bool allowInsecure);
+            GetEffectiveTactical(out apiUrl, out apiKey, out dashUrl, out allowInsecure);
 
             if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(dashUrl))
             {
@@ -1333,25 +1424,42 @@ namespace NarzedziaIP
                     "TacticalRMM",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
-                return;
+                return false;
             }
+
             SaveTacticalSettings();
+            return true;
+        }
+
+        // Znajduje agenta (z cache listy agentow). null gdy nie ma.
+        private async Task<TacticalAgent> FindTacticalAgentAsync(string host, string apiUrl, string apiKey, bool allowInsecure)
+        {
+            if (_tacticalChecked && string.Equals(_tacticalCheckedHost, host, StringComparison.OrdinalIgnoreCase))
+                return _tacticalAgent;
+
+            List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15, allowInsecure);
+            TacticalAgent agent = TacticalRmm.FindByHostname(agents, host);
+            _tacticalAgent = agent;
+            _tacticalChecked = true;
+            _tacticalCheckedHost = host;
+            return agent;
+        }
+
+        private async void btnTactical_Click(object sender, RoutedEventArgs e)
+        {
+            string host = null;
+            string apiUrl = null;
+            string apiKey = null;
+            string dashUrl = null;
+            bool allowInsecure = false;
+            if (!PrepareTacticalAction(out host, out apiUrl, out apiKey, out dashUrl, out allowInsecure))
+                return;
 
             btnTactical.IsEnabled = false;
-            txtStatus.Text = "Szukam w TacticalRMM...";
+            SetStatus("Szukam w TacticalRMM...");
             try
             {
-                TacticalAgent agent = null;
-                if (_tacticalChecked && string.Equals(_tacticalCheckedHost, host, StringComparison.OrdinalIgnoreCase))
-                    agent = _tacticalAgent;
-                else
-                {
-                    List<TacticalAgent> agents = await TacticalRmm.GetAgentsCachedAsync(apiUrl, apiKey, 15, allowInsecure);
-                    agent = TacticalRmm.FindByHostname(agents, host);
-                    _tacticalAgent = agent;
-                    _tacticalChecked = true;
-                    _tacticalCheckedHost = host;
-                }
+                TacticalAgent agent = await FindTacticalAgentAsync(host, apiUrl, apiKey, allowInsecure);
                 if (agent == null)
                 {
                     MessageBox.Show(
@@ -1404,8 +1512,72 @@ namespace NarzedziaIP
             }
             finally
             {
-                txtStatus.Text = "";
-                try { btnTactical.IsEnabled = true; }
+                SetStatus("");
+                try { SetRmmButtons(true, _rmmTooltip); }
+                catch (Exception err) { AppLog.Error(err); }
+            }
+        }
+
+        // "Pokaz komputer w RMM" - strona komputera w dashboardzie TacticalRMM
+        // (stan, historia, zadania). Bez przechodzenia do pulpitu.
+        private async void btnShowInRmm_Click(object sender, RoutedEventArgs e)
+        {
+            string host = null;
+            string apiUrl = null;
+            string apiKey = null;
+            string dashUrl = null;
+            bool allowInsecure = false;
+            if (!PrepareTacticalAction(out host, out apiUrl, out apiKey, out dashUrl, out allowInsecure))
+                return;
+
+            btnShowInRmm.IsEnabled = false;
+            SetStatus("Szukam w TacticalRMM...");
+            try
+            {
+                TacticalAgent agent = await FindTacticalAgentAsync(host, apiUrl, apiKey, allowInsecure);
+                if (agent == null)
+                {
+                    MessageBox.Show(
+                        $"Nie znaleziono agenta '{host}' w TacticalRMM.\n\nSprawdź nazwę albo czy komputer ma zainstalowanego agenta.",
+                        "TacticalRMM",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                string url = TacticalRmm.AgentUrl(dashUrl, agent.AgentId);
+                if (url == null)
+                {
+                    MessageBox.Show(
+                        "Niepoprawny adres dashboardu w Ustawieniach.",
+                        "TacticalRMM",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                try
+                {
+                    txtHistoria.AppendText($"{host}\tTacticalRMM (strona komputera): {agent.AgentId}\t{DateTime.Now:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}");
+                    txtHistoria.ScrollToEnd();
+                    HistoryLog.Append("TacticalRMM", host, agent.AgentId, "Strona komputera w RMM");
+                }
+                catch (Exception err) { AppLog.Error(err); }
+
+                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Błąd TacticalRMM:\n\n" + ex.Message,
+                    "TacticalRMM",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                SetStatus("");
+                try { SetRmmButtons(true, _rmmTooltip); }
                 catch (Exception err) { AppLog.Error(err); }
             }
         }
@@ -1970,9 +2142,8 @@ namespace NarzedziaIP
             {
                 btnCopyIP.IsEnabled = false;
                 btnCopyMAC.IsEnabled = false;
-                btnMSRA.IsEnabled = false;
-            btnRDP.IsEnabled = false;
-            btnTactical.IsEnabled = false;
+                btnConnect.IsEnabled = false;
+                SetRmmButtons(false, "Otwórz pulpit w TacticalRMM");
                 btnSearchConnect.IsEnabled = true;
             }
         }
@@ -2051,6 +2222,7 @@ namespace NarzedziaIP
             if (IsIPv4Address(hostname))
                 return;
 
+            SetStatus("Porównuję wynik z DNS...");
             List<string> dnsIps = await GetDnsIPv4AddressesAsync(hostname);
             List<string> dhcpIpList = dhcpIps
                 .Where(ip => IsIPv4Address(ip))
