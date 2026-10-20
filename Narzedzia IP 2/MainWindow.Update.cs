@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -29,7 +30,7 @@ namespace NarzedziaIP
                 string mf = global::Narzedzia_IP_2.Properties.Settings.Default.MacFormat;
                 cmbMacFormat.SelectedIndex = mf == MacFormat.Cisco ? 2 : mf == MacFormat.Colon ? 1 : 0;
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             BeginDhcpBackgroundCheck();
 
             // Post-startup fallback: the boot check found an update but could
@@ -75,7 +76,11 @@ namespace NarzedziaIP
                 ReleaseInfo info = await Updater.FetchLatestReleaseAsync(15).ConfigureAwait(true);
                 bool newer;
                 try { newer = Updater.IsNewer(info.Tag, null); }
-                catch { newer = false; }
+                catch (Exception err)
+                {
+                    AppLog.Error(err);
+                    newer = false;
+                }
                 if (!newer)
                 {
                     MessageBox.Show(this,
@@ -103,6 +108,31 @@ namespace NarzedziaIP
             bool? result = dlg.ShowDialog();
             if (result == true)
                 UpdateFlow.ExitForUpdate();
+        }
+
+        // Otwiera log bledow - miejsce, gdzie trafiaja wyjatki, ktore kod
+        // przechwytuje i ignoruje (zamiast znikac bez sladu).
+        private void btnOpenErrorLog_Click(object sender, RoutedEventArgs e)
+        {
+            string path = AppLog.DefaultPath();
+            try
+            {
+                if (!System.IO.File.Exists(path))
+                {
+                    MessageBox.Show(this,
+                        "Nie ma jeszcze zapisanych błędów.\n\nPlik powstanie tutaj:\n" + path,
+                        "Log błędów", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("btnOpenErrorLog_Click", ex);
+                MessageBox.Show(this,
+                    "Nie udało się otworzyć logu:\n\n" + path,
+                    "Log błędów", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }

@@ -272,14 +272,18 @@ namespace NarzedziaIP
                     Task<bool> waitTask = Task.Run(() =>
                     {
                         try { return process.WaitForExit(timeoutMs <= 0 ? 30000 : timeoutMs); }
-                        catch { return false; }
+                        catch (Exception err)
+                        {
+                            AppLog.Error(err);
+                            return false;
+                        }
                     });
 
                     Task done = await Task.WhenAny(waitTask, cancelled.Task).ConfigureAwait(false);
                     if (done != waitTask || !waitTask.Result)
                     {
                         try { process.Kill(); }
-                        catch { }
+                        catch (Exception err) { AppLog.Error(err); }
                         cancel.ThrowIfCancellationRequested();
                         throw new TimeoutException(
                             "Przekroczono limit czasu zapytania PowerShell (" + (timeoutMs <= 0 ? 30000 : timeoutMs) / 1000 + " s).");

@@ -125,6 +125,49 @@ namespace NarzedziaIP.Tests
             Assert.AreEqual(2, one.Count);
         }
 
+        // Skrypty PowerShell maja wlasny jezyk - "catch { }". Automatyczna
+        // zamiana pustych catchy w C# potrafi tu skasowac skrypt.
+        [TestMethod]
+        public void PowerShellScriptsUseValidCatchSyntax()
+        {
+            string leases = DhcpClient.BuildScopeLeasesCommand("srv", "10.0.0.0", "pc");
+            StringAssert.Contains(leases, "catch { }");
+            Assert.IsFalse(leases.Contains("catch ("), "skrypt PowerShell nie zna 'catch (Exception)'");
+
+            string reservation = DhcpClient.BuildReservationCommand("srv", "10.0.0.5");
+            StringAssert.Contains(reservation, "catch { }");
+            Assert.IsFalse(reservation.Contains("catch ("), "skrypt PowerShell nie zna 'catch (Exception)'");
+        }
+
+        // Wykonanie skryptu: bez modulu DHCP (lub serwera) polecenie konczy
+        // sie bledem "cmdlet nie rozpoznany" - to OK. Blad SKLADNI skryptu
+        // ("Unexpected token") oznacza, ze skrypt jest zepsuty.
+        [TestMethod]
+        public async Task PowerShellScriptsHaveNoSyntaxErrors()
+        {
+            await AssertNoSyntaxError(DhcpClient.BuildScopesCommand("srv"));
+            await AssertNoSyntaxError(DhcpClient.BuildScopeLeasesCommand("srv", "10.0.0.0", "pc"));
+            await AssertNoSyntaxError(DhcpClient.BuildReservationCommand("srv", "10.0.0.5"));
+        }
+
+        private static async Task AssertNoSyntaxError(string script)
+        {
+            try
+            {
+                await DhcpClient.RunPowerShellAsync(script, 20000);
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message ?? string.Empty;
+                Assert.IsFalse(msg.Contains("Unexpected token"),
+                    "skrypt PowerShell ma blad skladni: " + msg);
+                Assert.IsFalse(msg.Contains("Missing closing"),
+                    "skrypt PowerShell ma blad skladni: " + msg);
+                Assert.IsFalse(msg.Contains("Unexpected end"),
+                    "skrypt PowerShell ma blad skladni: " + msg);
+            }
+        }
+
         [TestMethod]
         public void BuildReservationCommandHasCmdletAndMarkers()
         {

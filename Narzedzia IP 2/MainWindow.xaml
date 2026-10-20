@@ -642,6 +642,13 @@
                                         Width="170"
                                         Height="32"
                                         Click="btnCheckUpdate_Click"/>
+                                <Button x:Name="btnOpenErrorLog"
+                                        Content="Log błędów"
+                                        Width="110"
+                                        Height="32"
+                                        Margin="15,0,0,0"
+                                        Click="btnOpenErrorLog_Click"
+                                        ToolTip="Otwórz plik z zapisanymi błędami programu."/>
                             </WrapPanel>
                             <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="Format MAC:"

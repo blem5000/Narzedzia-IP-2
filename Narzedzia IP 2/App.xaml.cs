@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 
 namespace NarzedziaIP
 {
@@ -21,11 +22,11 @@ namespace NarzedziaIP
                     s.Save();
                 }
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             // Sprzątanie po rename-swap aktualizacji (np. *.old po instalacji z sharea).
             try { Updater.CleanupOldBackups(Updater.AppDir()); }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             bool updated = BootUpdate.TrySilentUpdate();
             if (updated)
@@ -38,7 +39,11 @@ namespace NarzedziaIP
             // w tle przez MainWindow (status widać w pasku tytułu).
             string dhcpIp;
             try { dhcpIp = global::Narzedzia_IP_2.Properties.Settings.Default.DhcpServer; }
-            catch { dhcpIp = null; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                dhcpIp = null;
+            }
 
             MainWindow mainWindow = new MainWindow(dhcpIp);
 

@@ -132,7 +132,7 @@ namespace NarzedziaIP
             if (string.IsNullOrWhiteSpace(dest))
                 return;
             try { File.Delete(dest); }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private static string Pct(DownloadProgress p)

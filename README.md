@@ -75,6 +75,7 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | `PingHelper.cs` / `PingMonitor.cs` | ping i statystyki (`PingStats`, `PingRow`) |
 | `TacticalRmm.cs` | REST API TacticalRMM, parsowanie, cache agentów |
 | `CompanyConfig.cs` | konfiguracja z rejestru `HKCU\Software\NarzedziaIP2` + DPAPI |
+| `AppLog.cs` | log błędów (`%LOCALAPPDATA%\NarzedziaIP2\bledy.log`) |
 | `Updater.cs` | API GitHub, pobieranie, walidacja i rozpakowywanie paczki |
 | `HistoryLog.cs` | historia CSV w `%LOCALAPPDATA%\NarzedziaIP2` |
 | `AclInput/AclWildcard/AclRemark.cs` | agregacja wildcardów i remarki ACL |
@@ -175,6 +176,10 @@ adresy loopback. Instalacje z API pod `http://` muszą włączyć opcję
 - **DPAPI** — klucz API w ustawieniach użytkownika.
 - **Bez konsoli** — aktualizacja uruchamia osobny proces okienkowy, więc
   nigdzie nie wyskakuje okno `cmd`.
+- **Log błędów** — wyjątki, które kod przechwytuje i ignoruje, trafiają do
+  `%LOCALAPPDATA%\NarzedziaIP2\bledy.log` (rotowany). Przycisk **„Log błędów"**
+  w zakładce Ustawienia otwiera plik. Ten sam błąd powtarzany w krótkim
+  czasie jest zapisywany raz, z licznikiem powtórzeń — log nie zalewa dysku.
 
 ### Czego **nie** ma
 

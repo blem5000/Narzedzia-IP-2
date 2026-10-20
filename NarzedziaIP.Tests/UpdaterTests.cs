@@ -372,6 +372,30 @@ namespace NarzedziaIP.Tests
                     catch { }
             }
         }
+
+        // Skrypt .bat zawiera komende PowerShell - w niej "catch { }",
+        // a nie C#-owe "catch (Exception ...)".
+        [TestMethod]
+        public void ApplyScriptUsesValidPowerShellCatchSyntax()
+        {
+            string zip = Path.Combine(_tmp, "u.zip");
+            File.WriteAllText(zip, "x");
+            string bat = null;
+            try
+            {
+                bat = Updater.WriteApplyScript(zip, _tmp, 1234);
+                string content = File.ReadAllText(bat);
+                StringAssert.Contains(content, "catch { }");
+                Assert.IsFalse(content.Contains("catch (Exception"),
+                    "skrypt PowerShell nie zna 'catch (Exception)'");
+            }
+            finally
+            {
+                if (bat != null)
+                    try { File.Delete(bat); }
+                    catch { }
+            }
+        }
     }
 
     [TestClass]

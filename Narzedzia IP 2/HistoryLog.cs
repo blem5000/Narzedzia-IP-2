@@ -76,7 +76,7 @@ namespace NarzedziaIP
                     if (new FileInfo(path).Length > TrimAboveBytes)
                         TrimToMaxLines(path, MaxLines);
                 }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
                 return true;
             }
             catch

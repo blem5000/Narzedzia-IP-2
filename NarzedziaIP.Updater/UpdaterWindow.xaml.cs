@@ -127,14 +127,14 @@ namespace NarzedziaIPUpdater
                 // 2s timer fired or user forced it - let it close.
             }
             try { if (_log != null) _log.Close(); }
-            catch { }
+            catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
             base.OnClosed(e);
         }
 
         private void Log(string msg)
         {
             try { _log.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + msg); }
-            catch { }
+            catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
         }
 
         private void UiLog(string msg)
@@ -180,7 +180,7 @@ namespace NarzedziaIPUpdater
             finally
             {
                 try { if (_log != null) _log.Close(); }
-                catch { }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
             }
         }
 
@@ -216,9 +216,9 @@ namespace NarzedziaIPUpdater
             Process.Start(psi);
 
             try { File.Delete(zip); }
-            catch { }
+            catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
             try { Directory.Delete(staging, true); }
-            catch { }
+            catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
 
             Log("done");
             SetPhase("Gotowe — nowa wersja uruchomiona.", 1000);
@@ -234,7 +234,7 @@ namespace NarzedziaIPUpdater
         private void Fail(Exception ex)
         {
             try { Log("FAILED" + Environment.NewLine + ex); }
-            catch { }
+            catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
             _failed = true;
             _busy = false;
             UiLog(ex.GetType().Name + ": " + ex.Message);
@@ -243,10 +243,10 @@ namespace NarzedziaIPUpdater
             {
                 lblPhase.Text = "Błąd aktualizacji.";
                 try { btnInstall.Visibility = Visibility.Collapsed; }
-                catch { }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
                 btnClose.IsEnabled = true;
                 try { Activate(); }
-                catch { }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
             });
         }
 
@@ -256,7 +256,11 @@ namespace NarzedziaIPUpdater
             {
                 string selfDir = null;
                 try { selfDir = Path.GetDirectoryName(global::NarzedziaIP.Updater.ExePath()); }
-                catch { selfDir = null; }
+                catch (Exception err)
+                {
+                    global::NarzedziaIP.AppLog.Error(err);
+                    selfDir = null;
+                }
                 if (string.IsNullOrWhiteSpace(selfDir))
                     selfDir = AppDomain.CurrentDomain.BaseDirectory;
                 Log("dir=" + selfDir);
@@ -284,7 +288,11 @@ namespace NarzedziaIPUpdater
 
                 bool newer;
                 try { newer = global::NarzedziaIP.Updater.IsNewer(info.Tag, installed); }
-                catch { newer = false; }
+                catch (Exception err)
+                {
+                    global::NarzedziaIP.AppLog.Error(err);
+                    newer = false;
+                }
                 if (!newer)
                 {
                     Log("up to date");
@@ -359,7 +367,7 @@ namespace NarzedziaIPUpdater
             catch (Exception ex)
             {
                 try { if (dest != null) File.Delete(dest); }
-                catch { }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
                 Fail(ex);
                 return;
             }
@@ -373,7 +381,7 @@ namespace NarzedziaIPUpdater
             catch (Exception ex)
             {
                 try { if (dest != null) File.Delete(dest); }
-                catch { }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
                 Fail(ex);
                 return;
             }
@@ -395,7 +403,7 @@ namespace NarzedziaIPUpdater
             catch (Exception ex)
             {
                 try { if (dest != null) File.Delete(dest); }
-                catch { }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
                 Fail(ex);
             }
         }
@@ -412,12 +420,16 @@ namespace NarzedziaIPUpdater
                 dir = Path.GetDirectoryName(mainExe);
                 name = Path.GetFileNameWithoutExtension(mainExe);
             }
-            catch { }
+            catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
             if (string.IsNullOrWhiteSpace(name))
                 return res;
             Process[] procs;
             try { procs = Process.GetProcessesByName(name); }
-            catch { return res; }
+            catch (Exception err)
+            {
+                global::NarzedziaIP.AppLog.Error(err);
+                return res;
+            }
             foreach (Process p in procs)
             {
                 try
@@ -425,7 +437,11 @@ namespace NarzedziaIPUpdater
                     int pid = p.Id;
                     string path = null;
                     try { path = p.MainModule.FileName; }
-                    catch { path = null; }
+                    catch (Exception err)
+                    {
+                        global::NarzedziaIP.AppLog.Error(err);
+                        path = null;
+                    }
                     if (!string.IsNullOrWhiteSpace(dir))
                     {
                         if (string.IsNullOrWhiteSpace(path)
@@ -434,8 +450,8 @@ namespace NarzedziaIPUpdater
                     }
                     res.Add(Tuple.Create(pid, global::NarzedziaIP.Updater.ProcStartUnix(pid)));
                 }
-                catch { }
-                finally { try { p.Dispose(); } catch { } }
+                catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); }
+                finally { try { p.Dispose(); } catch (Exception err) { global::NarzedziaIP.AppLog.Error(err); } }
             }
             return res;
         }

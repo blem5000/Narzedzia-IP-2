@@ -43,19 +43,23 @@ namespace NarzedziaIP
         private async void BeginDhcpBackgroundCheck()
         {
             try { txtDhcpServer.Text = _dhcpIp; }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             SetTitleSuffix("trwa sprawdzanie dhcp");
             SetDhcpServerStatus("Sprawdzanie...", Brushes.Gray);
             try { btnTestDhcp.IsEnabled = false; }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             bool ok = false;
             try { ok = await TestDhcpServerAsync(_dhcpIp); }
-            catch { ok = false; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                ok = false;
+            }
 
             try { btnTestDhcp.IsEnabled = true; }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             if (ok)
             {
@@ -73,7 +77,11 @@ namespace NarzedziaIP
         {
             string entered = null;
             try { entered = txtDhcpServer.Text.Trim(); }
-            catch { entered = null; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                entered = null;
+            }
 
             if (string.IsNullOrWhiteSpace(entered))
             {
@@ -82,16 +90,20 @@ namespace NarzedziaIP
             }
 
             try { btnTestDhcp.IsEnabled = false; }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             SetTitleSuffix("trwa sprawdzanie dhcp");
             SetDhcpServerStatus("Sprawdzanie " + entered + "...", Brushes.Orange);
 
             bool ok = false;
             try { ok = await TestDhcpServerAsync(entered); }
-            catch { ok = false; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                ok = false;
+            }
 
             try { btnTestDhcp.IsEnabled = true; }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             if (!ok)
             {
@@ -106,7 +118,7 @@ namespace NarzedziaIP
                 global::Narzedzia_IP_2.Properties.Settings.Default.DhcpServer = entered;
                 global::Narzedzia_IP_2.Properties.Settings.Default.Save();
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             SetTitleSuffix(string.Empty);
             SetDhcpServerStatus("Połączono: " + entered, Brushes.Green);

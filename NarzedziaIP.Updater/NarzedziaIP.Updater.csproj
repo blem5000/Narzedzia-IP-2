@@ -72,6 +72,9 @@
     <Compile Include="..\Narzedzia IP 2\Updater.cs">
       <Link>Updater.cs</Link>
     </Compile>
+    <Compile Include="..\Narzedzia IP 2\AppLog.cs">
+      <Link>AppLog.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

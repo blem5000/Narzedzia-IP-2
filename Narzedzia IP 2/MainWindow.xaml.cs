@@ -64,7 +64,7 @@ namespace NarzedziaIP
                     Height = ws.MainHeight;
                 }
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             Closing += MainWindow_Closing;
 
@@ -101,7 +101,7 @@ namespace NarzedziaIP
                     global::Narzedzia_IP_2.Properties.Settings.Default.Save();
                 }
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
@@ -113,7 +113,7 @@ namespace NarzedziaIP
                 s.MainHeight = Height;
                 s.Save();
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         // ============================================================
@@ -162,7 +162,7 @@ namespace NarzedziaIP
                     if (saved == MacFormat.Colon || saved == MacFormat.Cisco)
                         style = saved;
                 }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
                 string formatted = MacFormat.Format(mac, style) ?? mac.Replace("-", "");
                 if (!ClipboardHelper.TrySetText(formatted))
                     ShowClipboardError("Kopiuj MAC");
@@ -190,7 +190,7 @@ namespace NarzedziaIP
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private void btnMSRA_Click(object sender, RoutedEventArgs e)
@@ -264,7 +264,7 @@ namespace NarzedziaIP
                     lines.Add(r.Summary());
                 txtPingSummary.Text = string.Join(Environment.NewLine, lines);
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             btnStopPing.IsEnabled = false;
             btnStartPing.IsEnabled = true;
@@ -374,7 +374,7 @@ namespace NarzedziaIP
                     .ToList();
                 lstResults.SelectedIndex = _activeLeases.Count == 1 ? 0 : -1;
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private string SelectedLeaseIp()
@@ -385,7 +385,7 @@ namespace NarzedziaIP
                 if (i >= 0 && i < _activeLeases.Count)
                     return _activeLeases[i].IPAddress;
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             return null;
         }
 
@@ -397,7 +397,7 @@ namespace NarzedziaIP
                 if (i >= 0 && i < _activeLeases.Count)
                     return _activeLeases[i].MacAddress;
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             return null;
         }
 
@@ -405,10 +405,18 @@ namespace NarzedziaIP
         {
             List<string> actives;
             try { actives = _activeLeases.Select(l => l.IPAddress).ToList(); }
-            catch { actives = new List<string>(); }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                actives = new List<string>();
+            }
             string direct = null;
             try { direct = lblIP.Text; }
-            catch { direct = null; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                direct = null;
+            }
             return IpSelection.ResolveActiveIp(actives, SelectedLeaseIp(), direct);
         }
 
@@ -419,14 +427,22 @@ namespace NarzedziaIP
                 return m;
             List<string> macs;
             try { macs = _activeLeases.Select(l => l.MacAddress).Distinct().ToList(); }
-            catch { macs = new List<string>(); }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                macs = new List<string>();
+            }
             return macs.Count == 1 ? macs[0] : null;
         }
 
         private int DistinctActiveIpCount()
         {
             try { return _activeLeases.Select(l => l.IPAddress).Distinct().Count(); }
-            catch { return 0; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                return 0;
+            }
         }
 
         // ============================================================
@@ -713,7 +729,7 @@ namespace NarzedziaIP
             pingTimer.Stop();
             _pingRows.Clear();
             try { dgPing.ItemsSource = null; txtPingSummary.Text = string.Empty; }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             int secs = 1;
             try
@@ -721,7 +737,11 @@ namespace NarzedziaIP
                 secs = PingHelper.ParseIntervalSeconds(txtPingInterval.Text, 1);
                 txtPingInterval.Text = secs.ToString();
             }
-            catch { secs = 1; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                secs = 1;
+            }
             pingTimer.Interval = TimeSpan.FromSeconds(secs);
 
             List<string> targets = PingTargets.ParseInput(txtHostname2.Text);
@@ -775,7 +795,7 @@ namespace NarzedziaIP
                     txtPingSummary.Text = "Pominięto (brak aktywnego IP): " + string.Join(", ", missed);
 
                 try { dgPing.ItemsSource = _pingRows; }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
 
                 btnStartPing.IsEnabled = false;
                 btnStopPing.IsEnabled = true;
@@ -809,7 +829,7 @@ namespace NarzedziaIP
                 }
                 _pingRows.Add(new PingRow(display, ip));
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private bool _pingBusy;
@@ -821,7 +841,11 @@ namespace NarzedziaIP
 
             List<PingRow> rows;
             try { rows = _pingRows.ToList(); }
-            catch { return; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                return;
+            }
 
             if (rows.Count == 0)
             {
@@ -870,9 +894,17 @@ namespace NarzedziaIP
                     long rtt = 0;
                     int ttl = -1;
                     try { rtt = reply.RoundtripTime; }
-                    catch { rtt = 0; }
+                    catch (Exception err)
+                    {
+                        AppLog.Error(err);
+                        rtt = 0;
+                    }
                     try { ttl = reply.Options != null ? reply.Options.Ttl : -1; }
-                    catch { ttl = -1; }
+                    catch (Exception err)
+                    {
+                        AppLog.Error(err);
+                        ttl = -1;
+                    }
 
                     row.Record(success, rtt, ttl);
                     return success;
@@ -1074,7 +1106,7 @@ namespace NarzedziaIP
                 btnTactical.IsEnabled = true;
                 btnTactical.ToolTip = "Otwórz pulpit w TacticalRMM";
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private async Task CheckTacticalAgentAsync(string hostname)
@@ -1115,14 +1147,18 @@ namespace NarzedziaIP
                     btnTactical.ToolTip = "Nie znaleziono komputera w TacticalRMM";
                 }
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private string ResolveTacticalHostname()
         {
             string typed = null;
             try { typed = txtHostname.Text.Trim(); }
-            catch { typed = null; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                typed = null;
+            }
 
             if (string.IsNullOrWhiteSpace(typed))
                 return null;
@@ -1139,7 +1175,7 @@ namespace NarzedziaIP
                         return lease.HostName.Trim();
                 }
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
 
             return null;
         }
@@ -1158,7 +1194,7 @@ namespace NarzedziaIP
                 setDash = s.TacticalDashboardUrl;
                 setAllow = s.TacticalAllowInsecureHttp;
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             CompanyConfig.TacticalConfig merged;
             try
             {
@@ -1200,7 +1236,7 @@ namespace NarzedziaIP
                 else
                     txtTacticalApiKey.ToolTip = "Klucz API TacticalRMM (jak hasło - nie pokazuj nikomu).";
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private void LoadTacticalSettings()
@@ -1215,11 +1251,15 @@ namespace NarzedziaIP
                 UpdateApiKeyTooltip();
                 CompanyConfig.TacticalConfig reg = null;
                 try { reg = CompanyConfig.ReadTactical(); }
-                catch { reg = null; }
+                catch (Exception err)
+                {
+                    AppLog.Error(err);
+                    reg = null;
+                }
                 if (reg != null && reg.AnyPresent)
                     SetTacticalStatus("Część ustawień pochodzi z rejestru (zarządzane centralnie).", Brushes.Gray);
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private void SaveTacticalSettings()
@@ -1233,7 +1273,7 @@ namespace NarzedziaIP
                 s.TacticalAllowInsecureHttp = chkTacticalAllowInsecure.IsChecked == true;
                 s.Save();
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private void SetTacticalStatus(string text, Brush brush)
@@ -1243,7 +1283,7 @@ namespace NarzedziaIP
                 lblTacticalStatus.Text = text ?? string.Empty;
                 lblTacticalStatus.Foreground = brush;
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private async void btnTestTactical_Click(object sender, RoutedEventArgs e)
@@ -1264,7 +1304,7 @@ namespace NarzedziaIP
             finally
             {
                 try { btnTestTactical.IsEnabled = true; }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
             }
         }
 
@@ -1350,7 +1390,7 @@ namespace NarzedziaIP
                     txtHistoria.ScrollToEnd();
                     HistoryLog.Append("TacticalRMM", host, agent.AgentId, string.Empty);
                 }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
 
                 Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
             }
@@ -1366,7 +1406,7 @@ namespace NarzedziaIP
             {
                 txtStatus.Text = "";
                 try { btnTactical.IsEnabled = true; }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
             }
         }
 
@@ -1468,9 +1508,9 @@ namespace NarzedziaIP
             if (cts == null)
                 return;
             try { cts.Cancel(); }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             try { cts.Dispose(); }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private Task<bool> DhcpReservationExistsAsync(string ip)
@@ -1606,9 +1646,17 @@ namespace NarzedziaIP
                 string owner = string.Empty;
                 string ownerEnd = string.Empty;
                 try { owner = AclRemark.CleanOwner(txtAclOwner.Text); }
-                catch { owner = string.Empty; }
+                catch (Exception err)
+                {
+                    AppLog.Error(err);
+                    owner = string.Empty;
+                }
                 try { ownerEnd = AclRemark.EndMark(owner); }
-                catch { ownerEnd = string.Empty; }
+                catch (Exception err)
+                {
+                    AppLog.Error(err);
+                    ownerEnd = string.Empty;
+                }
 
                 // ===== SUBNET CHECK =====
                 bool InSubnet(string ip, string net, string mask)
@@ -1788,7 +1836,7 @@ namespace NarzedziaIP
                 txtAclSeqIn.Text = s.AclSeqIn.ToString();
                 txtAclSeqOut.Text = s.AclSeqOut.ToString();
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         private bool TryReadAclSettings(out string subnet1Net, out string subnet1Mask,

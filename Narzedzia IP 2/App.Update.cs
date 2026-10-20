@@ -44,7 +44,11 @@ namespace NarzedziaIP
                 return BootAction.StartApp;
             bool newer;
             try { newer = Updater.IsNewer(info.Tag, currentVersion); }
-            catch { newer = false; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                newer = false;
+            }
             if (!newer)
                 return BootAction.StartApp;
             if (string.Equals(info.Tag, skippedTag, StringComparison.OrdinalIgnoreCase))
@@ -122,7 +126,11 @@ namespace NarzedziaIP
 
             bool newer;
             try { newer = Updater.IsNewer(info.Tag, null); }
-            catch { newer = false; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                newer = false;
+            }
             return newer ? info : null;
         }
     }
@@ -148,7 +156,7 @@ namespace NarzedziaIP
         public static void ExitForUpdate()
         {
             try { Application.Current.Shutdown(); }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
             Environment.Exit(0);
         }
     }

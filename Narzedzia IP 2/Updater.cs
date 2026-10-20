@@ -128,10 +128,18 @@ namespace NarzedziaIP
                 return known;
             string self = null;
             try { self = ExePath(); }
-            catch { self = null; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                self = null;
+            }
             string[] exes;
             try { exes = Directory.GetFiles(dir, "*.exe"); }
-            catch { return null; }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+                return null;
+            }
             Array.Sort(exes, StringComparer.OrdinalIgnoreCase);
             foreach (string f in exes)
             {
@@ -332,7 +340,11 @@ namespace NarzedziaIP
             if (chosen.TryGetValue("size", out sizeObj) && sizeObj != null)
             {
                 try { size = Convert.ToInt64(sizeObj); }
-                catch { size = 0; }
+                catch (Exception err)
+                {
+                    AppLog.Error(err);
+                    size = 0;
+                }
             }
 
             return new ReleaseInfo
@@ -704,7 +716,11 @@ namespace NarzedziaIP
                 string rel = full.Substring(src.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 long size = 0;
                 try { size = new FileInfo(full).Length; }
-                catch { size = 0; }
+                catch (Exception err)
+                {
+                    AppLog.Error(err);
+                    size = 0;
+                }
                 jobs.Add(Tuple.Create(full, rel, size));
                 total += size;
             }
@@ -758,7 +774,7 @@ namespace NarzedziaIP
                     if (File.Exists(target))
                         File.Delete(target + ".old");
                 }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
             }
         }
 
@@ -776,7 +792,7 @@ namespace NarzedziaIP
                     return true;
                 string backup = target + ".old";
                 try { File.Delete(backup); }
-                catch { }
+                catch (Exception err) { AppLog.Error(err); }
                 File.Move(target, backup);
                 return true;
             }
@@ -802,10 +818,10 @@ namespace NarzedziaIP
                         if (File.Exists(original))
                             File.Delete(stale);
                     }
-                    catch { }
+                    catch (Exception err) { AppLog.Error(err); }
                 }
             }
-            catch { }
+            catch (Exception err) { AppLog.Error(err); }
         }
 
         // The updater must NOT run from the app dir: it replaces every file

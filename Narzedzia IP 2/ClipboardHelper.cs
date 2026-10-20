@@ -49,7 +49,7 @@ namespace NarzedziaIP
                 if (i + 1 < attempts && delayMs > 0)
                 {
                     try { Thread.Sleep(delayMs); }
-                    catch { }
+                    catch (Exception err) { AppLog.Error(err); }
                 }
             }
             return false;
