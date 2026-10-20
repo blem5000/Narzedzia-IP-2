@@ -36,6 +36,7 @@ $UpdBin = Join-Path $Root "NarzedziaIP.Updater\bin\Release"
 Copy-Item (Join-Path $MainBin "Narzedzia IP 2.exe") $Dist -Force
 Copy-Item (Join-Path $MainBin "Narzedzia IP 2.exe.config") $Dist -Force
 Copy-Item (Join-Path $UpdBin "NarzedziaIP.Updater.exe") $Dist -Force
+Copy-Item (Join-Path $Root "Narzedzia IP 2\Instrukcja.md") $Dist -Force
 
 $Zip = Join-Path $Root "dist\NarzedziaIP2-windows.zip"
 if (Test-Path $Zip) { Remove-Item $Zip -Force }

@@ -67,9 +67,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Instrukcja.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
+    <!-- Instrukcja obslugi: wersja wbudowana w exe + plik obok programu -->
+    <EmbeddedResource Include="Instrukcja.md">
+      <LogicalName>NarzedziaIP.Instrukcja.md</LogicalName>
+    </EmbeddedResource>
     <Page Include="UpdateDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -85,6 +86,9 @@
     <Compile Include="App.Update.cs" />
     <Compile Include="AppLog.cs" />
     <Compile Include="ConnectMethod.cs" />
+    <Compile Include="ManualParser.cs" />
+    <Compile Include="ManualRenderer.cs" />
+    <Compile Include="ManualLoader.cs" />
     <Compile Include="AclWildcard.cs" />
     <Compile Include="HistoryLog.cs" />
     <Compile Include="AclInput.cs" />
@@ -143,5 +147,10 @@
     <None Include="App.config" />
     <None Include="app.ico" />
   </ItemGroup>
+  <Target Name="CopyManualToOutput" AfterTargets="Build">
+    <!-- Instrukcja obok exe - mozna ja edytowac (wlasna wersja:
+         Instrukcja.local.md, ktorej aktualizacje nie ruszaja) -->
+    <Copy SourceFiles="Instrukcja.md" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

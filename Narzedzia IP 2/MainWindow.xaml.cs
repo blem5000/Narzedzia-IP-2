@@ -931,6 +931,26 @@ namespace NarzedziaIP
             catch (Exception err) { AppLog.Error(err); }
         }
 
+        // Instrukcja obslugi: tekst z pliku Markdown (obok programu albo
+        // wbudowany w exe) zamieniony na dokument WPF.
+        private void LoadManual()
+        {
+            try
+            {
+                string text = ManualLoader.Load();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    AppLog.Error("LoadManual", "nie znaleziono zadnej wersji instrukcji");
+                    return;
+                }
+                rtbManual.Document = ManualRenderer.ToDocument(ManualParser.Parse(text));
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("LoadManual", ex);
+            }
+        }
+
         private void StartMSRA()
         {
             if (DistinctActiveIpCount() > 1 && string.IsNullOrWhiteSpace(SelectedLeaseIp()))

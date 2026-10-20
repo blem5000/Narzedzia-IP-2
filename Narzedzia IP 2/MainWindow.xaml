@@ -696,12 +696,7 @@
                      FontFamily="Segoe UI"
                      FontSize="14"
                      Padding="10"
-                     BorderThickness="1">
-
-                        <RichTextBox.Document>
-                            <StaticResource ResourceKey="InstrukcjaDoc"/>
-                        </RichTextBox.Document>
-                    </RichTextBox>
+                     BorderThickness="1"/>
                 </Grid>
             </TabItem>
         </TabControl>

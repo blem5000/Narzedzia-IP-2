@@ -52,7 +52,7 @@ więc ścieżki z polskimi znakami i spacjami nie psują argumentów.
 ```
 Narzedzia IP 2.sln
 Narzedzia IP 2/            aplikacja główna (WPF)
-  Instrukcja.xaml          treść instrukcji obsługi (FlowDocument) - osobny plik
+  Instrukcja.md            treść instrukcji obsługi (Markdown) - osobny plik
 NarzedziaIP.Updater/       osobny instalator aktualizacji (okno z paskiem postępu)
 NarzedziaIP.Tests/         testy MSTest (v2)
 .github/workflows/         build-test.yml (push/PR), release.yml (tag v*)
@@ -65,12 +65,14 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | Plik | Odpowiada za |
 |---|---|
 | `App.xaml.cs` | start, migracja ustawień, sprzątanie `*.old`, cicha aktualizacja |
-| `App.xaml` | merge `Instrukcja.xaml` do zasobów aplikacji |
-| `Instrukcja.xaml` | **instrukcja obsługi** — `FlowDocument` w osobnym pliku (klucz `InstrukcjaDoc`) |
+| `Instrukcja.md` | **instrukcja obsługi** (Markdown) — wersja wbudowana w exe + plik obok programu |
+| `ManualParser.cs` | Markdown → bloki (nagłówki, akapity, listy, formatowanie) |
+| `ManualRenderer.cs` | bloki → dokument WPF (`FlowDocument`) |
+| `ManualLoader.cs` | skąd wziąć instrukcję: plik użytkownika → plik obok exe → wersja wbudowana |
 | `App.Update.cs` | decyzja „aktualizować czy nie" na starcie (`BootUpdate.EvaluateBootAction`) |
 | `MainWindow.xaml` / `.xaml.cs` | całe GUI i obsługa zdarzeń |
 | `MainWindow.Dhcp.cs` | test łączności z serwerem DHCP w tle |
-| `MainWindow.Update.cs` | przycisk „sprawdź aktualizacje", okno aktualizacji |
+| `MainWindow.Update.cs` | przycisk „sprawdź aktualizacje", okno aktualizacji, „Log błędów" |
 | `DhcpClient.cs` | budowa komend PowerShell, parsowanie odpowiedzi, cache zakresów |
 | `PingHelper.cs` / `PingMonitor.cs` | ping i statystyki (`PingStats`, `PingRow`) |
 | `TacticalRmm.cs` | REST API TacticalRMM, parsowanie, cache agentów |
@@ -80,6 +82,22 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | `Updater.cs` | API GitHub, pobieranie, walidacja i rozpakowywanie paczki |
 | `HistoryLog.cs` | historia CSV w `%LOCALAPPDATA%\NarzedziaIP2` |
 | `AclInput/AclWildcard/AclRemark.cs` | agregacja wildcardów i remarki ACL |
+
+### Instrukcja obsługi — własna wersja
+
+Instrukcja w zakładce „Instrukcja" to plik Markdown. Program szuka go w kolejności:
+
+1. **`Instrukcja.local.md`** obok programu — Twoja wersja. Ten plik **nie jest
+   dostarczany** z programem, więc aktualizacje go nie ruszają. Skopiuj
+   `Instrukcja.md` → `Instrukcja.local.md` i edytuj według potrzeb
+   (np. własne podsieci, procedury, kogo wzywać).
+2. **`Instrukcja.md`** obok programu — wersja dostarczana (aktualizowana
+   przy każdej aktualizacji, dobra jako szablon).
+3. Wersja **wbudowana w exe** — gdy plików nie da się odczytać.
+
+Format: nagłówki `#`/`##`/`###`, akapity, listy `-` i `1.`, pogrubienie `**tekst**`,
+kursywa `*tekst*`, kod `` `tekst` ``. Znaki `*` i `` ` `` escapuj backslashem
+(`\*`).
 
 ---
 
