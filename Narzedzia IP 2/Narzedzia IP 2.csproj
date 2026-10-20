@@ -67,6 +67,9 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Instrukcja.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UpdateDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

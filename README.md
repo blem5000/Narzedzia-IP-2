@@ -52,6 +52,7 @@ więc ścieżki z polskimi znakami i spacjami nie psują argumentów.
 ```
 Narzedzia IP 2.sln
 Narzedzia IP 2/            aplikacja główna (WPF)
+  Instrukcja.xaml          treść instrukcji obsługi (FlowDocument) - osobny plik
 NarzedziaIP.Updater/       osobny instalator aktualizacji (okno z paskiem postępu)
 NarzedziaIP.Tests/         testy MSTest (v2)
 .github/workflows/         build-test.yml (push/PR), release.yml (tag v*)
@@ -64,6 +65,8 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | Plik | Odpowiada za |
 |---|---|
 | `App.xaml.cs` | start, migracja ustawień, sprzątanie `*.old`, cicha aktualizacja |
+| `App.xaml` | merge `Instrukcja.xaml` do zasobów aplikacji |
+| `Instrukcja.xaml` | **instrukcja obsługi** — `FlowDocument` w osobnym pliku (klucz `InstrukcjaDoc`) |
 | `App.Update.cs` | decyzja „aktualizować czy nie" na starcie (`BootUpdate.EvaluateBootAction`) |
 | `MainWindow.xaml` / `.xaml.cs` | całe GUI i obsługa zdarzeń |
 | `MainWindow.Dhcp.cs` | test łączności z serwerem DHCP w tle |
