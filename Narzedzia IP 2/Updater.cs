@@ -470,7 +470,14 @@ namespace NarzedziaIP
                 long done = 0;
                 foreach (ZipArchiveEntry entry in entries)
                 {
-                    string target = Path.Combine(staging, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
+                    // Zip Slip: nazwa wpisu w archiwum moze zawierac ".." i
+                    // wypisac plik poza katalogiem staging.
+                    // ZipFileExtensions.ExtractToFile NIE waliduje sciezki
+                    // (w odróżnieniu od ZipFile.ExtractToDirectory), wiec
+                    // pilnujemy tego sami - kazdy wpis musi trafic wprost do
+                    // staging. ValidatePackageFiles dziala dopiero PO
+                    // rozpakowaniu, wiec sama nie wystarczy.
+                    string target = ResolveSafeTarget(staging, entry.FullName);
                     if (entry.FullName.EndsWith("/") || string.IsNullOrEmpty(entry.Name))
                     {
                         Directory.CreateDirectory(target);
@@ -485,6 +492,34 @@ namespace NarzedziaIP
                 if (progress != null)
                     progress.Report(new DownloadProgress(total, total));
             }
+        }
+
+        // Zwraca absolutna sciezke docelowa wpisu archiwum, gwarantujac ze
+        // miesci sie w katalogu staging. Rzuca InvalidOperationException,
+        // gdy nazwa wpisu jest bezwzgledna albo ucieka z katalogu ("..").
+        public static string ResolveSafeTarget(string staging, string entryName)
+        {
+            if (string.IsNullOrWhiteSpace(staging) || string.IsNullOrWhiteSpace(entryName))
+                throw new InvalidOperationException("Zip Slip: pusta nazwa wpisu archiwum.");
+
+            string root = Path.GetFullPath(staging);
+            if (!root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal))
+                root += Path.DirectorySeparatorChar;
+
+            string relative = entryName
+                .Replace('/', Path.DirectorySeparatorChar)
+                .Replace('\\', Path.DirectorySeparatorChar);
+
+            // Bezwzgledna nazwa w archiwum (np. "C:\evil.exe") - odrzucamy.
+            if (Path.IsPathRooted(relative))
+                throw new InvalidOperationException("Zip Slip: bezwzgledna sciezka w archiwum: " + entryName);
+
+            string full = Path.GetFullPath(Path.Combine(root, relative));
+            if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "Zip Slip: wpis wychodzi poza katalog rozpakowywania: " + entryName);
+
+            return full;
         }
 
         // Release zips contain a top-level NarzedziaIP2/ folder; return it when

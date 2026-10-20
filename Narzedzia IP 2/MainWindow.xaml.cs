@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -540,7 +541,10 @@ namespace NarzedziaIP
                     btnCopyMAC.IsEnabled = true;
                     btnMSRA.IsEnabled = true;
                     btnRDP.IsEnabled = true;
-                    btnTactical.IsEnabled = true;
+                    // UWAGA: nie wlaczamy tutaj btnTactical - jego stan
+                    // ustawia CheckTacticalAgentAsync (wylacza, gdy agenta nie
+                    // ma w TacticalRMM). Wlaczanie go tutaj cofalo ten stan
+                    // i tooltip ostrzegal, a przycisk i tak dzialal.
                 }
                 else
                 {
@@ -1358,7 +1362,19 @@ namespace NarzedziaIP
         // ============================================================
         // HELPERS
         // ============================================================
-        private readonly Dictionary<string, bool> _dhcpCache = new Dictionary<string, bool>();
+
+        // Limit czasu na sprawdzenie rezerwacji DHCP. Stary wpis blokowal
+        // ReadToEnd() na zawsze (brak skutecznego timeoutu) - status zostawal
+        // "Sprawdzanie DHCP..." w nieskonczonosc.
+        private const int DhcpReservationTimeoutMs = 15000;
+
+        // Cache odpowiedzi DHCP: IP -> czy rezerwacja istnieje.
+        // ConcurrentDictionary, bo sprawdzenie moze dobiec z watku
+        // anulowanego (watek UI + anulowanie poprzedniego zapytania).
+        private readonly ConcurrentDictionary<string, bool> _dhcpCache =
+            new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+        private CancellationTokenSource _dhcpCheckCts;
 
         private async void DhcpTypingTimer_Tick(object sender, EventArgs e)
         {
@@ -1368,6 +1384,7 @@ namespace NarzedziaIP
 
             if (!IPAddress.TryParse(ip, out _))
             {
+                CancelDhcpCheck();
                 lblDhcpStatus.Text = "❌ Niepoprawny IP";
                 lblDhcpStatus.Foreground = Brushes.Red;
 
@@ -1379,7 +1396,22 @@ namespace NarzedziaIP
             lblDhcpStatus.Text = "⏳ Sprawdzanie DHCP...";
             lblDhcpStatus.Foreground = Brushes.Orange;
 
-            bool exists = await DhcpReservationExistsAsync(ip);
+            // Nowe sprawdzenie anuluje poprzednie (uzytkownik pisal kolejne IP),
+            // inaczej kilka zapytan PowerShell dzialalo by rownolegle.
+            CancellationToken token = BeginDhcpCheck();
+
+            bool exists;
+            try
+            {
+                exists = await DhcpReservationExistsAsync(ip, token);
+            }
+            catch (OperationCanceledException)
+            {
+                return; // zastapione nowszym sprawdzeniem
+            }
+
+            if (token.IsCancellationRequested)
+                return; // wynik juz nieaktualny
 
             if (exists)
             {
@@ -1406,79 +1438,62 @@ namespace NarzedziaIP
             lblDhcpStatus.Foreground = System.Windows.Media.Brushes.Gray;
         }
 
-        private async Task<bool> DhcpReservationExistsAsync(string ip)
+        private CancellationToken BeginDhcpCheck()
+        {
+            CancelDhcpCheck();
+            _dhcpCheckCts = new CancellationTokenSource();
+            return _dhcpCheckCts.Token;
+        }
+
+        private void CancelDhcpCheck()
+        {
+            CancellationTokenSource cts = _dhcpCheckCts;
+            _dhcpCheckCts = null;
+            if (cts == null)
+                return;
+            try { cts.Cancel(); }
+            catch { }
+            try { cts.Dispose(); }
+            catch { }
+        }
+
+        private Task<bool> DhcpReservationExistsAsync(string ip)
+        {
+            return DhcpReservationExistsAsync(ip, CancellationToken.None);
+        }
+
+        private async Task<bool> DhcpReservationExistsAsync(string ip, CancellationToken cancel)
         {
             // ✅ CACHE HIT
-            if (_dhcpCache.ContainsKey(ip))
-                return _dhcpCache[ip];
+            bool cached;
+            if (_dhcpCache.TryGetValue(ip, out cached))
+                return cached;
 
-            bool result = await Task.Run(() =>
+            DhcpClient.ReservationStatus status;
+            try
             {
-                try
-                {
-                    string safeDhcp = DhcpClient.EscapePowerShellSingleQuotedString(_dhcpIp);
-                    string safeIp = DhcpClient.EscapePowerShellSingleQuotedString(ip);
+                string ps = DhcpClient.BuildReservationCommand(_dhcpIp, ip);
+                string output = await DhcpClient.RunPowerShellAsync(ps, DhcpReservationTimeoutMs, cancel);
+                status = DhcpClient.ParseReservationStatus(output);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                // Blad albo timeout - nie wiadomo, czy rezerwacja istnieje.
+                status = DhcpClient.ReservationStatus.Unknown;
+            }
 
-                    string ps = $@"
-$ErrorActionPreference = 'Stop'
+            // Do cache trafiaja tylko konkretne odpowiedzi (FOUND / NOTFOUND).
+            // Bledu nie zapamietujemy jako "brak rezerwacji" - inaczej jeden
+            // przejściowy timeout zablokowalby IP na zawsze.
+            if (status == DhcpClient.ReservationStatus.Unknown)
+                return false;
 
-$server = '{safeDhcp}'
-$targetIP = '{safeIp}'
-
-$scopes = Get-DhcpServerv4Scope -ComputerName $server
-
-foreach ($scope in $scopes)
-{{
-    try
-    {{
-        $res = Get-DhcpServerv4Reservation -ComputerName $server -ScopeId $scope.ScopeId -ErrorAction Stop |
-               Where-Object {{ $_.IPAddress.IPAddressToString -eq $targetIP }}
-
-        if ($res)
-        {{
-            Write-Output 'FOUND'
-            return
-        }}
-    }}
-    catch {{}}
-}}
-
-Write-Output 'NOTFOUND'
-";
-
-                    ProcessStartInfo psi = new ProcessStartInfo
-                    {
-                        FileName = "powershell.exe",
-                        Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + DhcpClient.EncodePowerShellCommand(ps),
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true
-                    };
-
-                    using (Process p = new Process())
-                    {
-                        p.StartInfo = psi;
-                        p.Start();
-
-                        string output = p.StandardOutput.ReadToEnd();
-
-                        // ✅ DEBUG – TU!!!
-                        System.Diagnostics.Debug.WriteLine($"DHCP OUTPUT for {ip}: [{output}]");
-
-                        p.WaitForExit(15000);
-
-                        return output.Trim().Equals("FOUND", StringComparison.OrdinalIgnoreCase);
-                    }
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-
-            // ✅ zapis do cache
+            bool result = status == DhcpClient.ReservationStatus.Found;
             _dhcpCache[ip] = result;
-
             return result;
         }
 

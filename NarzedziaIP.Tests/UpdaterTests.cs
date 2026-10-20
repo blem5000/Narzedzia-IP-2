@@ -201,6 +201,129 @@ namespace NarzedziaIP.Tests
             Assert.AreEqual("hello", File.ReadAllText(Path.Combine(staging, "f.txt")));
         }
 
+        // Zip Slip: nazwa wpisu w archiwum moze wskazac poza katalog staging.
+        // ZipFileExtensions.ExtractToFile nie waliduje sciezki, wiec
+        // Updater.ExtractZip musi pilnowac tego sam.
+        [TestMethod]
+        public void ExtractZipRejectsPathTraversalEntry()
+        {
+            string zip = Path.Combine(_tmp, "evil.zip");
+            using (FileStream fs = new FileStream(zip, FileMode.Create, FileAccess.Write))
+            using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+                ZipArchiveEntry entry = archive.CreateEntry("../evil_slipped.txt");
+                using (StreamWriter w = new StreamWriter(entry.Open()))
+                    w.Write("pwned");
+            }
+
+            string staging = Path.Combine(_tmp, "zstage");
+            try
+            {
+                Updater.ExtractZip(zip, staging, null);
+                Assert.Fail("ExtractZip powinien odrzucic wpis wychodzacy poza staging");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "Zip Slip");
+            }
+
+            Assert.IsFalse(File.Exists(Path.Combine(_tmp, "evil_slipped.txt")),
+                "plik nie moze trafic poza katalog staging");
+            Assert.IsFalse(File.Exists(Path.Combine(Path.GetTempPath(), "evil_slipped.txt")),
+                "plik nie moze trafic do katalogu tymczasowego");
+        }
+
+        [TestMethod]
+        public void ExtractZipRejectsTraversalDirectoryEntry()
+        {
+            string zip = Path.Combine(_tmp, "evildir.zip");
+            using (FileStream fs = new FileStream(zip, FileMode.Create, FileAccess.Write))
+            using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+                ZipArchiveEntry entry = archive.CreateEntry("../evil_dir/");
+                using (StreamWriter w = new StreamWriter(entry.Open()))
+                    w.Write("x");
+            }
+
+            string staging = Path.Combine(_tmp, "zstage");
+            try
+            {
+                Updater.ExtractZip(zip, staging, null);
+                Assert.Fail("ExtractZip powinien odrzucic katalog wychodzacy poza staging");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "Zip Slip");
+            }
+
+            Assert.IsFalse(Directory.Exists(Path.Combine(_tmp, "evil_dir")));
+        }
+
+        [TestMethod]
+        public void ExtractZipRejectsAbsoluteEntryPath()
+        {
+            string zip = Path.Combine(_tmp, "abs.zip");
+            using (FileStream fs = new FileStream(zip, FileMode.Create, FileAccess.Write))
+            using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+                ZipArchiveEntry entry = archive.CreateEntry("C:/evil_abs.txt");
+                using (StreamWriter w = new StreamWriter(entry.Open()))
+                    w.Write("x");
+            }
+
+            string staging = Path.Combine(_tmp, "zstage");
+            try
+            {
+                Updater.ExtractZip(zip, staging, null);
+                Assert.Fail("ExtractZip powinien odrzucic bezwzgledna sciezke");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "Zip Slip");
+            }
+        }
+
+        [TestMethod]
+        public void ResolveSafeTargetKeepsNestedPathsInside()
+        {
+            string staging = Path.Combine(_tmp, "stage");
+            Directory.CreateDirectory(staging);
+            string root = Path.GetFullPath(staging);
+
+            string nested = Updater.ResolveSafeTarget(staging, "sub/dir/file.txt");
+            Assert.IsTrue(nested.StartsWith(root, StringComparison.OrdinalIgnoreCase));
+
+            // ".." w srodku sciezki jest legalny, o ile wynik zostaje w staging
+            string normalized = Updater.ResolveSafeTarget(staging, "sub/../ok.txt");
+            Assert.IsTrue(normalized.StartsWith(root, StringComparison.OrdinalIgnoreCase));
+        }
+
+        [TestMethod]
+        public void ResolveSafeTargetRejectsEscapes()
+        {
+            string staging = Path.Combine(_tmp, "stage");
+            Directory.CreateDirectory(staging);
+
+            AssertThrowsZipSlip(staging, "../evil.txt");
+            AssertThrowsZipSlip(staging, "..\\evil.txt");
+            AssertThrowsZipSlip(staging, "sub/../../evil.txt");
+            AssertThrowsZipSlip(staging, "C:/evil.txt");
+            AssertThrowsZipSlip(staging, "");
+        }
+
+        private static void AssertThrowsZipSlip(string staging, string entryName)
+        {
+            try
+            {
+                Updater.ResolveSafeTarget(staging, entryName);
+                Assert.Fail("ResolveSafeTarget powinien odrzucic: " + entryName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "Zip Slip");
+            }
+        }
+
         [TestMethod]
         public void WriteApplyScriptContainsMarkers()
         {

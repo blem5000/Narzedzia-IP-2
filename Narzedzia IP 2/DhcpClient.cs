@@ -20,6 +20,16 @@ namespace NarzedziaIP
     // Czyste parsowanie + cache zakresów są testowalne bez serwera DHCP.
     public static class DhcpClient
     {
+        // Wynik sprawdzenia rezerwacji DHCP. Unknown = nie wiadomo (blad/timeout),
+        // taki wynik NIE moze trafic do cache - inaczej przejściowy blad zostalby
+        // zapamietany jako "brak rezerwacji" na zawsze.
+        public enum ReservationStatus
+        {
+            Unknown = 0,
+            Found = 1,
+            NotFound = 2
+        }
+
         public const int ScopeCacheMinutes = 10;
         public const int MaxParallelScopes = 4;
 
@@ -166,6 +176,49 @@ namespace NarzedziaIP
                 + "}\r\n"
                 + "} catch { }\r\n"
                 + "}\r\n";
+        }
+
+        // Rezerwacja DHCP dla konkretnego IP. Skrypt wypisuje 'FOUND' albo
+        // 'NOTFOUND' - czytelne rozpoznanie bez polegania na kod wyjscia.
+        public static string BuildReservationCommand(string dhcpServer, string ip)
+        {
+            string safeServer = EscapePowerShellSingleQuotedString(dhcpServer);
+            string safeIp = EscapePowerShellSingleQuotedString(ip);
+            return "$ErrorActionPreference = 'Stop'\r\n"
+                + "$server = '" + safeServer + "'\r\n"
+                + "$targetIP = '" + safeIp + "'\r\n"
+                + "$scopes = Get-DhcpServerv4Scope -ComputerName $server\r\n"
+                + "foreach ($scope in $scopes) {\r\n"
+                + "try {\r\n"
+                + "$res = Get-DhcpServerv4Reservation -ComputerName $server -ScopeId $scope.ScopeId -ErrorAction Stop |\r\n"
+                + "       Where-Object { $_.IPAddress.IPAddressToString -eq $targetIP }\r\n"
+                + "if ($res) {\r\n"
+                + "Write-Output 'FOUND'\r\n"
+                + "return\r\n"
+                + "}\r\n"
+                + "} catch { }\r\n"
+                + "}\r\n"
+                + "Write-Output 'NOTFOUND'\r\n";
+        }
+
+        // Parsuje output skryptu rezerwacji. Porownanie DOKLADNE (linia po
+        // linii), bo "NOTFOUND" zawiera w sobie "FOUND" - Contains() daloby
+        // falszywe trafienie.
+        public static ReservationStatus ParseReservationStatus(string output)
+        {
+            if (string.IsNullOrWhiteSpace(output))
+                return ReservationStatus.Unknown;
+
+            string[] lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string line in lines)
+            {
+                string t = line.Trim();
+                if (t.Equals("FOUND", StringComparison.OrdinalIgnoreCase))
+                    return ReservationStatus.Found;
+                if (t.Equals("NOTFOUND", StringComparison.OrdinalIgnoreCase))
+                    return ReservationStatus.NotFound;
+            }
+            return ReservationStatus.Unknown;
         }
 
         // Dzielenie zakresów na co najwyżej maxParts paczek (kolejność zachowana).

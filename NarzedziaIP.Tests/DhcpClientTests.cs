@@ -124,6 +124,49 @@ namespace NarzedziaIP.Tests
             var one = DhcpClient.Partition(new System.Collections.Generic.List<int> { 1, 2 }, 10);
             Assert.AreEqual(2, one.Count);
         }
+
+        [TestMethod]
+        public void BuildReservationCommandHasCmdletAndMarkers()
+        {
+            string cmd = DhcpClient.BuildReservationCommand("srv", "10.0.0.5");
+            StringAssert.Contains(cmd, "Get-DhcpServerv4Scope");
+            StringAssert.Contains(cmd, "Get-DhcpServerv4Reservation");
+            StringAssert.Contains(cmd, "'srv'");
+            StringAssert.Contains(cmd, "'10.0.0.5'");
+            StringAssert.Contains(cmd, "Write-Output 'FOUND'");
+            StringAssert.Contains(cmd, "Write-Output 'NOTFOUND'");
+        }
+
+        [TestMethod]
+        public void BuildReservationCommandEscapesQuotes()
+        {
+            string cmd = DhcpClient.BuildReservationCommand("sr'v", "10.0.0.5'");
+            StringAssert.Contains(cmd, "'sr''v'");
+            StringAssert.Contains(cmd, "'10.0.0.5'''");
+        }
+
+        [TestMethod]
+        public void ParseReservationStatusDetectsFoundAndNotFound()
+        {
+            Assert.AreEqual(DhcpClient.ReservationStatus.Found,
+                DhcpClient.ParseReservationStatus("FOUND\r\n"));
+            Assert.AreEqual(DhcpClient.ReservationStatus.NotFound,
+                DhcpClient.ParseReservationStatus("NOTFOUND"));
+            Assert.AreEqual(DhcpClient.ReservationStatus.NotFound,
+                DhcpClient.ParseReservationStatus("NOTFOUND\r\n"),
+                "NOTFOUND zawiera w sobie FOUND - porownanie musi byc dokladne");
+            Assert.AreEqual(DhcpClient.ReservationStatus.Found,
+                DhcpClient.ParseReservationStatus("FOUND"));
+        }
+
+        [TestMethod]
+        public void ParseReservationStatusUnknownOnGarbage()
+        {
+            Assert.AreEqual(DhcpClient.ReservationStatus.Unknown, DhcpClient.ParseReservationStatus(null));
+            Assert.AreEqual(DhcpClient.ReservationStatus.Unknown, DhcpClient.ParseReservationStatus(""));
+            Assert.AreEqual(DhcpClient.ReservationStatus.Unknown,
+                DhcpClient.ParseReservationStatus("cos innego\r\n"));
+        }
     }
 
     [TestClass]
