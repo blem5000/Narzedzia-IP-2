@@ -39,6 +39,19 @@
         </Paragraph>
 
         <Paragraph>
+            <Bold>Komunikaty w pasku statusu:</Bold>
+            nad przyciskami program pokazuje, co w tej chwili robi.
+            <Bold>Szukam w DHCP...</Bold> - trwa wyszukiwanie adresu,
+            <Bold>Porównuję wynik z DNS...</Bold> - sprawdzanie, czy DNS
+            zwraca ten sam adres,
+            <Bold>Sprawdzam w TacticalRMM...</Bold> - szukanie agenta,
+            <Bold>Łączę z komputerem...</Bold> - start połączenia,
+            a na końcu np. <Bold>RDP uruchomione (10.0.0.5).</Bold>
+            Dzięki temu widać, w której fazie jest program - komunikat
+            zmienia się zamiast stać w miejscu.
+        </Paragraph>
+
+        <Paragraph>
             <Bold>Pole Hostname:</Bold>
                 W tym polu można wpisać nazwę komputera albo bezpośrednio adres IP.
         </Paragraph>
@@ -447,6 +460,15 @@
         </Paragraph>
 
         <Paragraph>
+            <Bold>Sprawdzanie pobranej paczki:</Bold>
+            przed instalacją program liczy SHA-256 pobranego pliku i porównuje
+            go z sumą zapisaną w opisie wydania. Przy niezgodności aktualizacja
+            jest przerwana i nic nie jest instalowane - komunikat
+            <Bold>Niezgodny SHA-256 paczki aktualizacji</Bold> oznacza, że
+            pobrany plik nie jest tym, który opublikowano.
+        </Paragraph>
+
+        <Paragraph>
             W zakładce <Bold>Ustawienia</Bold> widać numer wersji,
             przełącznik automatycznego sprawdzania oraz przycisk
             <Bold>Sprawdź aktualizacje</Bold> do ręcznej kontroli.
@@ -552,6 +574,18 @@
             Na dole zakładki jest panel aktualizacji
             (wersja, automatyczne sprawdzanie, ręczne
             <Bold>Sprawdź aktualizacje</Bold> ).
+        </Paragraph>
+
+        <Paragraph>
+            <Bold>Przycisk Log błędów:</Bold>
+            otwiera plik z zapisanymi błędami programu
+            (<Bold>%LOCALAPPDATA%\NarzedziaIP2\bledy.log</Bold>).
+            Trafiają tam sytuacje, które program przechwycił, ale nie mógł
+            obsłużyć sam - np. problem z zapisem ustawień albo brak
+            uprawnień do serwera DHCP. Dzięki temu zamiast zgadywać
+            przyczynę dziwnego zachowania można zajrzeć do logu.
+            Ten sam błąd powtarzany w krótkim czasie jest zapisywany raz,
+            z licznikiem powtórzeń.
         </Paragraph>
 
         <Paragraph>
