@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 
 namespace NarzedziaIP
 {
@@ -20,6 +21,21 @@ namespace NarzedziaIP
         private const int LookupTimeoutMs = 60000;
 
         private async void btnLookupIp_Click(object sender, RoutedEventArgs e)
+        {
+            await RunLookupAsync();
+        }
+
+        // Enter w polu adresu IP uruchamia wyszukiwanie (tak jak w polu
+        // Hostname) - bez tego klawisz nic nie robi i trzeba siegac myszka.
+        private async void txtLookupIp_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+            e.Handled = true;
+            await RunLookupAsync();
+        }
+
+        private async Task RunLookupAsync()
         {
             string ip = (txtLookupIp.Text ?? string.Empty).Trim();
 
@@ -48,7 +64,7 @@ namespace NarzedziaIP
             catch (Exception ex)
             {
                 lblLookupStatus.Text = "Błąd: " + ex.Message;
-                AppLog.Error("btnLookupIp_Click", ex);
+                AppLog.Error("RunLookupAsync", ex);
             }
             finally
             {

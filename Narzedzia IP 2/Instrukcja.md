@@ -51,7 +51,7 @@ Domyślny serwer DHCP to **150.150.222.20** . Inny adres wpiszesz w zakładce **
 
 Wyszukiwanie wsteczne: z adresu IP dowiesz się, jaki to komputer. Zgłoszenie brzmi „komputer na 10.202.130.55 nie wstał” - a nazwy hosta nie znasz.
 
-Wpisz adres IPv4 i kliknij **Szukaj**. Program sprawdza w DHCP:
+Wpisz adres IPv4 i kliknij **Szukaj** (działa też **Enter**). Program sprawdza w DHCP:
 
 - **Dzierżawa** - komputer aktualnie ma ten adres (jest włączony i zarejestrowany w DHCP). Widać też adres MAC.
 - **Rezerwacja** - adres jest przypisany do komputera na stałe, a host może być wyłączony. Opis rezerwacji zwykle mówi, kto odbiera sprzęt.

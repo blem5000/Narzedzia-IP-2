@@ -81,6 +81,7 @@ namespace NarzedziaIP
 
             txtHostname.KeyDown += txtHostname_KeyDown;
             txtHostname2.KeyDown += txtHostname2_KeyDown;
+            txtLookupIp.KeyDown += txtLookupIp_KeyDown;
 
             // LIVE DHCP CHECK
             txtAclSource.TextChanged += TxtAclSource_TextChanged;
