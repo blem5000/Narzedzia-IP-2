@@ -49,24 +49,23 @@ jobs:
           }
           Write-Host "Wersja zgodna z tagiem: $expected"
 
+      # Pakowanie - jeden skrypt dla CI i dla lokalnej pracy
+      # (build_release.ps1), zeby zawartosc paczki nie rozjechala sie
+      # miedzy nimi. Build juz wykonany w kroku powyzej.
+      # Pakowanie jest PRZED testami, bo test sciezki aktualizacji
+      # sprawdza zbudowana paczke.
+      - name: Package
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File build_release.ps1 -SkipBuild
+          if (-not (Test-Path "dist\NarzedziaIP2-windows.zip")) { throw "nie powstala paczka" }
+
       - name: Test
         shell: powershell
         run: |
           $vstest = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.PackageGroup.TestTools.Core -find **\vstest.console.exe | Select-Object -First 1
           if ([string]::IsNullOrWhiteSpace($vstest)) { throw "vstest.console.exe not found" }
           & $vstest "NarzedziaIP.Tests\bin\Release\NarzedziaIP.Tests.dll"
-
-      - name: Package
-        shell: powershell
-        run: |
-          $Dist = "dist\NarzedziaIP2"
-          if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
-          New-Item -ItemType Directory -Path $Dist | Out-Null
-          Copy-Item "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe" $Dist -Force
-          Copy-Item "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe.config" $Dist -Force
-          Copy-Item "NarzedziaIP.Updater\bin\Release\NarzedziaIP.Updater.exe" $Dist -Force
-          Copy-Item "Narzedzia IP 2\Instrukcja.md" "$Dist\Instrukcja.txt" -Force
-          Compress-Archive -Path $Dist -DestinationPath "dist\NarzedziaIP2-windows.zip"
 
       # SHA-256 paczki trafia do notatek release'a - aplikacja porownuje go z
       # hashem pobranego pliku i przerywa instalacje przy niezgodnosci.

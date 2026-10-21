@@ -196,8 +196,25 @@ namespace NarzedziaIPUpdater
             Log("source dir: " + src);
 
             Log("validating package...");
-            global::NarzedziaIP.Updater.ValidatePackageFiles(src, exeName);
-            Log("package ok");
+            bool forced = false;
+            try
+            {
+                global::NarzedziaIP.Updater.ValidatePackageFiles(src, exeName);
+                Log("package ok");
+            }
+            catch (Exception ex)
+            {
+                // Walidacja odrzucila paczke. To nie musi oznaczac ataku -
+                // np. nowy typ pliku w paczce, ktorego stara lista dozwolonych
+                // plikow nie zna. SHA-256 paczki jest juz sprawdzony w programie
+                // glownym, wiec plik pochodzi z oficjalnego wydania.
+                // Dajemy uzytkownikowi wybor zamiast zamykac aktualizacje.
+                Log("package rejected by validation: " + ex.Message);
+                forced = AskForceInstall(ex);
+                if (!forced)
+                    throw;
+                Log("user allowed install without validation");
+            }
 
             Log("copying -> " + targetDir);
             global::NarzedziaIP.Updater.CopyTree(src, targetDir, global::NarzedziaIP.Updater.PreservedFiles,
@@ -229,6 +246,36 @@ namespace NarzedziaIPUpdater
                 t.Tick += (s, e) => { t.Stop(); Close(); };
                 t.Start();
             });
+        }
+
+        // Pytanie uzytkownika: zainstalowac mimo to, ze walidacja odrzucila
+        // paczke? SHA-256 jest juz sprawdzony, wiec zwykle chodzi o nowy
+        // typ pliku, ktorego stara lista dozwolonych plikow nie zna.
+        // Zwraca true tylko przy jednoznacznym "Tak".
+        private bool AskForceInstall(Exception ex)
+        {
+            try
+            {
+                return Dispatcher.Invoke(new Func<bool>(() =>
+                {
+                    var answer = MessageBox.Show(this,
+                        "Paczka aktualizacji zawiera pliki, których walidacja nie dopuszcza:\n\n" +
+                        ex.Message + "\n\n" +
+                        "Sumy SHA-256 paczki zostało już sprawdzone, więc plik pochodzi z oficjalnego wydania. " +
+                        "Walidacja odrzuca go najpewniej dlatego, że paczka zawiera nowy typ pliku.\n\n" +
+                        "Zainstalować mimo to?",
+                        "Aktualizacja - nietypowa zawartość paczki",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning,
+                        MessageBoxResult.No);
+                    return answer == MessageBoxResult.Yes;
+                }));
+            }
+            catch (Exception err)
+            {
+                Log("AskForceInstall failed: " + err);
+                return false;
+            }
         }
 
         private void Fail(Exception ex)

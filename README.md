@@ -143,8 +143,28 @@ git push origin main
 git push origin v1.1.26
 ```
 
-3. `release.yml` zbuduje, odpali testy, spakuje i opublikuje release
+3. `release.yml` zbuduje, spakuje, odpali testy (w tym test ścieżki
+   aktualizacji na zbudowanej paczce) i opublikuje release
    z assetem `NarzedziaIP2-windows.zip` (plus `zip.sha256`).
+
+### Zabezpieczenia procesu wydania
+
+Wszystkie poniższe istnieją, bo w 1.1.33 wydaliśmy paczkę, której **stary
+updater nie potrafił zainstalować** („Paczka zawiera niedozwolone pliki") —
+użytkownicy zostali bez aktualizacji, a testy i CI były zielone.
+
+| Zabezpieczenie | Gdzie |
+|---|---|
+| **Jedno źródło prawdy dla paczki** — CI używa `build_release.ps1`, więc zawartość paczki nie rozjeżdża się między CI a lokalnym buildem | `build_release.ps1`, `release.yml` |
+| **Test ścieżki aktualizacji** — rozpakowanie → walidacja → podmiana plików → sprawdzenie wersji nowego .exe, na zbudowanej paczce | `NarzedziaIP.Tests/ReleasePackageTests.cs` |
+| **Paczka musi przechodzić walidację najstarszego updatera** — nowy plik w paczce o niedozwolonym rozszerzeniu wywala CI, zanim wyjdzie release | `PackagePassesValidationOfOlderUpdaters` |
+| **Wersja musi odpowiadać tagowi** — inaczej updater zapętla się w „jestem starszy" | `release.yml` → „Verify version matches tag" |
+| **SHA-256 w notatkach release'a** — aplikacja porównuje go z pobranym plikiem | `release.yml` → „Checksum" |
+| **Ścieżka awaryjna** — gdy walidacja odrzuci paczkę, użytkownik dostaje wybór („zainstalować mimo to?"), zamiast martwego programu | `NarzedziaIP.Updater` → `AskForceInstall` |
+
+**Zasada:** walidację paczki wykonuje **zainstalowany** updater, nie nowy.
+Dlatego każdy nowy plik w paczce musi mieć rozszerzenie dopuszczalne przez
+najstarszą wspieraną wersję programu.
    Notatki release'a zawierają linię `SHA256: <hash>` — aplikacja porównuje
    ją z hashem pobranego pliku i przerywa instalację przy niezgodności.
 

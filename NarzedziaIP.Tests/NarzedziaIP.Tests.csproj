@@ -51,6 +51,7 @@
     <Compile Include="ConnectMethodTests.cs" />
     <Compile Include="HistoryLogTests.cs" />
     <Compile Include="ManualTests.cs" />
+    <Compile Include="ReleasePackageTests.cs" />
     <Compile Include="PingMacAclTests.cs" />
     <Compile Include="PingMonitorTests.cs" />
     <Compile Include="TacticalTests.cs" />
