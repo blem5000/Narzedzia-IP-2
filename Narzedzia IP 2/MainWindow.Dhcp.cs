@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace NarzedziaIP
@@ -74,6 +75,20 @@ namespace NarzedziaIP
         }
 
         private async void btnTestDhcp_Click(object sender, RoutedEventArgs e)
+        {
+            await TestDhcpServerEntryAsync();
+        }
+
+        // Enter w polu serwera DHCP - tak jak klikniecie "Sprawdz".
+        private async void txtDhcpServer_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+            e.Handled = true;
+            await TestDhcpServerEntryAsync();
+        }
+
+        private async Task TestDhcpServerEntryAsync()
         {
             string entered = null;
             try { entered = txtDhcpServer.Text.Trim(); }

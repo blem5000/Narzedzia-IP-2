@@ -164,9 +164,9 @@ Program może działać wprost z sharea sieciowego: przy aktualizacji działają
 
 ## 10. Zakładka: Ustawienia
 
-**Serwer DHCP:** adres używany do wszystkich wyszukiwań. Przycisk **Sprawdź** weryfikuje połączenie i po sukcesie zapamiętuje adres na stałe (również między uruchomieniami).
+**Serwer DHCP:** adres używany do wszystkich wyszukiwań. Przycisk **Sprawdź** weryfikuje połączenie i po sukcesie zapamiętuje adres na stałe (również między uruchomieniami). Działa też **Enter** w polu adresu.
 
-**TacticalRMM:** adres API, klucz API oraz adres dashboardu (klucz możesz sprawdzić przyciskiem **Testuj** ). Pola mogą przychodzić z rejestru firmowego - wtedy edycja w programie nie ma znaczenia, bo rejestr wygrywa.
+**TacticalRMM:** adres API, klucz API oraz adres dashboardu (klucz możesz sprawdzić przyciskiem **Testuj** ). Pola mogą przychodzić z rejestru firmowego - wtedy edycja w programie nie ma znaczenia, bo rejestr wygrywa. **Enter** w dowolnym z tych pól od razu sprawdza połączenie.
 
 **ACL:** podsieci z maskami, nazwy list IN/OUT oraz startowe numery sekwencji używane przy generowaniu. Bledne wartości blokują generowanie z komunikatem.
 

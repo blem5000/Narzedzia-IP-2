@@ -82,6 +82,10 @@ namespace NarzedziaIP
             txtHostname.KeyDown += txtHostname_KeyDown;
             txtHostname2.KeyDown += txtHostname2_KeyDown;
             txtLookupIp.KeyDown += txtLookupIp_KeyDown;
+            txtDhcpServer.KeyDown += txtDhcpServer_KeyDown;
+            txtTacticalApiUrl.KeyDown += txtTacticalApiUrl_KeyDown;
+            txtTacticalApiKey.KeyDown += txtTacticalApiKey_KeyDown;
+            txtTacticalDashboardUrl.KeyDown += txtTacticalDashboardUrl_KeyDown;
 
             // LIVE DHCP CHECK
             txtAclSource.TextChanged += TxtAclSource_TextChanged;
@@ -1475,6 +1479,36 @@ namespace NarzedziaIP
         }
 
         private async void btnTestTactical_Click(object sender, RoutedEventArgs e)
+        {
+            await TestTacticalAsync();
+        }
+
+        // Enter w polach konfiguracji TacticalRMM - tak jak klikniecie "Testuj".
+        private async void txtTacticalApiUrl_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+            e.Handled = true;
+            await TestTacticalAsync();
+        }
+
+        private async void txtTacticalApiKey_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+            e.Handled = true;
+            await TestTacticalAsync();
+        }
+
+        private async void txtTacticalDashboardUrl_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+                return;
+            e.Handled = true;
+            await TestTacticalAsync();
+        }
+
+        private async Task TestTacticalAsync()
         {
             SaveTacticalSettings();
             btnTestTactical.IsEnabled = false;
