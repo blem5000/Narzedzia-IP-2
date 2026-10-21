@@ -149,8 +149,10 @@
   </ItemGroup>
   <Target Name="CopyManualToOutput" AfterTargets="Build">
     <!-- Instrukcja obok exe - mozna ja edytowac (wlasna wersja:
-         Instrukcja.local.md, ktorej aktualizacje nie ruszaja) -->
-    <Copy SourceFiles="Instrukcja.md" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+         Instrukcja.local.txt, ktorej aktualizacje nie ruszaja).
+         Rozszerzenie .txt (nie .md), bo stary updater (do 1.1.32)
+         odrzucalby paczke z plikiem .md. -->
+    <Copy SourceFiles="Instrukcja.md" DestinationFiles="$(OutDir)Instrukcja.txt" SkipUnchangedFiles="true" />
   </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

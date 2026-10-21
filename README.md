@@ -65,7 +65,7 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | Plik | Odpowiada za |
 |---|---|
 | `App.xaml.cs` | start, migracja ustawień, sprzątanie `*.old`, cicha aktualizacja |
-| `Instrukcja.md` | **instrukcja obsługi** (Markdown) — wersja wbudowana w exe + plik obok programu |
+| `Instrukcja.md` | **instrukcja obsługi** (Markdown) — źródło; w exe jako wersja wbudowana, w paczce jako `Instrukcja.txt` |
 | `ManualParser.cs` | Markdown → bloki (nagłówki, akapity, listy, formatowanie) |
 | `ManualRenderer.cs` | bloki → dokument WPF (`FlowDocument`) |
 | `ManualLoader.cs` | skąd wziąć instrukcję: plik użytkownika → plik obok exe → wersja wbudowana |
@@ -87,17 +87,22 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 
 Instrukcja w zakładce „Instrukcja" to plik Markdown. Program szuka go w kolejności:
 
-1. **`Instrukcja.local.md`** obok programu — Twoja wersja. Ten plik **nie jest
-   dostarczany** z programem, więc aktualizacje go nie ruszają. Skopiuj
-   `Instrukcja.md` → `Instrukcja.local.md` i edytuj według potrzeb
-   (np. własne podsieci, procedury, kogo wzywać).
-2. **`Instrukcja.md`** obok programu — wersja dostarczana (aktualizowana
+1. **`Instrukcja.local.md`** albo **`Instrukcja.local.txt`** obok programu — Twoja
+   wersja. Te pliki **nie są dostarczane** z programem, więc aktualizacje ich
+   nie ruszają. Skopiuj `Instrukcja.txt` → `Instrukcja.local.md` i edytuj
+   według potrzeb (np. własne podsieci, procedury, kogo wzywać).
+2. **`Instrukcja.txt`** obok programu — wersja dostarczana (aktualizowana
    przy każdej aktualizacji, dobra jako szablon).
 3. Wersja **wbudowana w exe** — gdy plików nie da się odczytać.
 
 Format: nagłówki `#`/`##`/`###`, akapity, listy `-` i `1.`, pogrubienie `**tekst**`,
 kursywa `*tekst*`, kod `` `tekst` ``. Znaki `*` i `` ` `` escapuj backslashem
 (`\*`).
+
+> **Uwaga:** dostarczana instrukcja ma rozszerzenie `.txt`, a nie `.md` —
+> stary updater (do 1.1.32) dopuszcza w paczce tylko `.dll .config .pdb .xml .txt`
+> i odrzuciłby paczkę z `.md` („Paczka zawiera niedozwolone pliki"). Zmieniamy
+> to dopiero w 1.1.34.
 
 ---
 

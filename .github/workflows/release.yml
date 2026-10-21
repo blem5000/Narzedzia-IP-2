@@ -65,7 +65,7 @@ jobs:
           Copy-Item "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe" $Dist -Force
           Copy-Item "Narzedzia IP 2\bin\Release\Narzedzia IP 2.exe.config" $Dist -Force
           Copy-Item "NarzedziaIP.Updater\bin\Release\NarzedziaIP.Updater.exe" $Dist -Force
-          Copy-Item "Narzedzia IP 2\Instrukcja.md" $Dist -Force
+          Copy-Item "Narzedzia IP 2\Instrukcja.md" "$Dist\Instrukcja.txt" -Force
           Compress-Archive -Path $Dist -DestinationPath "dist\NarzedziaIP2-windows.zip"
 
       # SHA-256 paczki trafia do notatek release'a - aplikacja porownuje go z

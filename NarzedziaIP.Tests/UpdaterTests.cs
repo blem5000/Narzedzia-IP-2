@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -394,6 +395,124 @@ namespace NarzedziaIP.Tests
                 if (bat != null)
                     try { File.Delete(bat); }
                     catch { }
+            }
+        }
+    }
+
+    [TestClass]
+    public class UpdaterPackageValidationTests
+    {
+        private string _tmp;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            _tmp = Path.Combine(Path.GetTempPath(), "narz_pkg_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_tmp);
+        }
+
+        [TestCleanup]
+        public void Teardown()
+        {
+            try { Directory.Delete(_tmp, true); }
+            catch { }
+        }
+
+        // Dokladnie taki zestaw plikow jak w paczce release'a.
+        private void WriteReleaseLikePackage()
+        {
+            File.WriteAllText(Path.Combine(_tmp, "Narzedzia IP 2.exe"), "x");
+            File.WriteAllText(Path.Combine(_tmp, "Narzedzia IP 2.exe.config"), "<configuration/>");
+            File.WriteAllText(Path.Combine(_tmp, "NarzedziaIP.Updater.exe"), "x");
+            // instrukcja jest dostarczana jako .txt (nie .md) - patrz test
+            // PackagePassesValidationOfOlderUpdaters
+            File.WriteAllText(Path.Combine(_tmp, "Instrukcja.txt"), "# instrukcja");
+        }
+
+        [TestMethod]
+        public void AcceptsRealPackageContent()
+        {
+            // Instrukcja w paczce musi przechodzic walidacje, inaczej
+            // aktualizacja konczy sie bledem "Paczka zawiera niedozwolone
+            // pliki" i programu nie da sie zaktualizowac.
+            WriteReleaseLikePackage();
+            Updater.ValidatePackageFiles(_tmp, "Narzedzia IP 2.exe");
+        }
+
+        [TestMethod]
+        public void PackagePassesValidationOfOlderUpdaters()
+        {
+            // Paczke waliduje ZAINSTALOWANY updater, nie nowy. Gdy uzytkownik
+            // ma stara wersje programu, ten stary updater musi te paczke
+            // przyjac - inaczej aktualizacja do nowej wersji sie nie powiedzie.
+            // Dozwolone rozszerzenia w wersji 1.1.32: .dll .config .pdb .xml .txt
+            // (+ dwa .exe o znanych nazwach).
+            WriteReleaseLikePackage();
+
+            HashSet<string> oldAllowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".dll", ".config", ".pdb", ".xml", ".txt"
+            };
+            HashSet<string> oldAllowedExe = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "Narzedzia IP 2.exe", "NarzedziaIP.Updater.exe"
+            };
+
+            foreach (string file in Directory.GetFiles(_tmp, "*", SearchOption.AllDirectories))
+            {
+                string ext = Path.GetExtension(file) ?? string.Empty;
+                string name = Path.GetFileName(file);
+                if (string.Equals(ext, ".exe", StringComparison.OrdinalIgnoreCase))
+                    Assert.IsTrue(oldAllowedExe.Contains(name), "stary updater odrzuci: " + name);
+                else
+                    Assert.IsTrue(oldAllowedExt.Contains(ext), "stary updater odrzuci: " + name);
+            }
+        }
+
+        [TestMethod]
+        public void RejectsUnknownExe()
+        {
+            WriteReleaseLikePackage();
+            File.WriteAllText(Path.Combine(_tmp, "zlosliwy.exe"), "x");
+            try
+            {
+                Updater.ValidatePackageFiles(_tmp, "Narzedzia IP 2.exe");
+                Assert.Fail("nieznany .exe powinien byc odrzucony");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "niedozwolone pliki");
+            }
+        }
+
+        [TestMethod]
+        public void RejectsScripts()
+        {
+            WriteReleaseLikePackage();
+            File.WriteAllText(Path.Combine(_tmp, "skrypt.ps1"), "x");
+            try
+            {
+                Updater.ValidatePackageFiles(_tmp, "Narzedzia IP 2.exe");
+                Assert.Fail("skrypt powinien byc odrzucony");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "niedozwolone pliki");
+            }
+        }
+
+        [TestMethod]
+        public void RequiresMainExe()
+        {
+            File.WriteAllText(Path.Combine(_tmp, "Instrukcja.txt"), "# instrukcja");
+            try
+            {
+                Updater.ValidatePackageFiles(_tmp, "Narzedzia IP 2.exe");
+                Assert.Fail("brak glownego exe powinien byc wykryty");
+            }
+            catch (InvalidOperationException ex)
+            {
+                StringAssert.Contains(ex.Message, "wymaganego pliku");
             }
         }
     }

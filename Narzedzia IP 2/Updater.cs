@@ -668,6 +668,8 @@ namespace NarzedziaIP
             allowedExt.Add(".pdb");
             allowedExt.Add(".xml");
             allowedExt.Add(".txt");
+            // instrukcja obslugi (Markdown) - plik tekstowy obok programu
+            allowedExt.Add(".md");
 
             List<string> bad = new List<string>();
             foreach (string f in files)
