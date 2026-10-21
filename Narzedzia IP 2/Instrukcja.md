@@ -47,7 +47,18 @@ Domyślny serwer DHCP to **150.150.222.20** . Inny adres wpiszesz w zakładce **
 
 **Historia:** Pokazuje wykonane wyszukiwania wraz z datą i godziną. Historia może również zawierać informacje o różnicy między DNS i DHCP. Każde wyszukiwanie i połączenie zapisywane jest też na dysk (profil użytkownika, plik historia.csv) - przyciskiem **Eksportuj historię** pod listą zapiszesz go w wybranym miejscu.
 
-## 3. Zakładka: Ping
+## 3. Zakładka: Po adresie IP
+
+Wyszukiwanie wsteczne: z adresu IP dowiesz się, jaki to komputer. Zgłoszenie brzmi „komputer na 10.202.130.55 nie wstał” - a nazwy hosta nie znasz.
+
+Wpisz adres IPv4 i kliknij **Szukaj**. Program sprawdza w DHCP:
+
+- **Dzierżawa** - komputer aktualnie ma ten adres (jest włączony i zarejestrowany w DHCP). Widać też adres MAC.
+- **Rezerwacja** - adres jest przypisany do komputera na stałe, a host może być wyłączony. Opis rezerwacji zwykle mówi, kto odbiera sprzęt.
+
+Wyniki to tabela: adres IP, nazwa hosta, MAC, rodzaj (dzierżawa / rezerwacja) i opis. Wiersz z rezerwacją bywa cenniejszy niż dzierżawa - to jedyna informacja o właścicielu, gdy masz tylko adres.
+
+## 4. Zakładka: Ping
 
 **Pole Hostname:** Można wpisać jedną lub wiele pozycji naraz (przecinki albo nowe linie): nazwę komputera albo bezpośrednio adres IP. Enter to nowa linia, start to **Ctrl+Enter** albo przycisk Start.
 
@@ -68,7 +79,9 @@ Domyślny serwer DHCP to **150.150.222.20** . Inny adres wpiszesz w zakładce **
 - **Dźwięk przy sukcesie** - program odtwarza dźwięk po udanym pingu.
 - **Dźwięk przy błędzie** - program odtwarza dźwięk, gdy ping się nie powiedzie.
 
-## 4. Wymagania techniczne
+**Log zdarzeń (up/down):** w grupie *Log zdarzeń* włączamy **Zapisuj zmiany stanu (up/down)**. Program zapisuje do pliku *ping-wydarzenia.csv* (profil użytkownika) każdą zmianę: kiedy host przestał odpowiadać i kiedy wrócił, wraz z czasem trwania poprzedniego stanu. To gotowy materiał do zgłoszenia „sieć padała o 14:32” - do tej pory liczniki pokazywały tylko stan bieżący, a ten fakt ginął z ekranu. Przycisk **Otwórz log...** pokazuje plik.
+
+## 5. Wymagania techniczne
 
 Program korzysta z poleceń PowerShell DHCP:
 
@@ -83,7 +96,7 @@ Funkcja RDP nie wymaga niczego dodatkowego na Twoim komputerze, ale komputer doc
 
 Funkcja Tactical wymaga agenta TacticalRMM na komputerze docelowym oraz klucza API (patrz rozdział 8).
 
-## 5. Typowe komunikaty
+## 6. Typowe komunikaty
 
 **Brak hostname!** Nie wpisano nazwy hosta ani adresu IP.
 
@@ -99,7 +112,7 @@ Funkcja Tactical wymaga agenta TacticalRMM na komputerze docelowym oraz klucza A
 
 **Aktualna wartość IP nie wygląda jak poprawny adres IPv4** Program nie uruchomi MSRA, ponieważ wynik nie jest pojedynczym poprawnym adresem IPv4.
 
-## 6. Zakładka: ACL (obecnie ukryta)
+## 7. Zakładka: ACL (obecnie ukryta)
 
 Zakładka ACL służy do generowania list dostępu (ACL) dla urządzeń Cisco na podstawie podanych adresów IP. Podsieci, nazwy list oraz startowe numery sekwencji zmienisz w zakładce **Ustawienia** .
 
@@ -129,7 +142,7 @@ Program automatycznie:
 
 **Przycisk Kopiuj do schowka:** kopiuje wygenerowaną konfigurację do schowka.
 
-## 7. Aktualizacje
+## 8. Aktualizacje
 
 Program sam sprawdza aktualizacje w GitHub Releases (**blem5000/Narzedzia-IP-2**) przy każdym uruchomieniu. Gdy znajdzie nowszą wersję, pobiera paczkę **NarzedziaIP2-windows.zip** i przekazuje instalację osobnemu programowi **NarzedziaIP.Updater.exe**, który podmienia pliki i uruchamia nową wersję. Gdy instalator GUI jest niedostępny, używany jest awaryjny skrypt .bat.
 
@@ -137,7 +150,7 @@ Program sam sprawdza aktualizacje w GitHub Releases (**blem5000/Narzedzia-IP-2**
 
 W zakładce **Ustawienia** widać numer wersji, przełącznik automatycznego sprawdzania oraz przycisk **Sprawdź aktualizacje** do ręcznej kontroli. Przycisk **Pomiń tę wersję** wycisza powiadomienie o danym wydaniu. Numer wersji musi zgadzać się z tagiem wydania (np. wersja 1.1.0 to tag v1.1.0). Instalator NarzedziaIP.Updater.exe można też uruchomić podwójnym kliknięciem: sam wykryje program obok siebie, sprawdzi wersję i zaproponuje instalację.
 
-## 8. TacticalRMM
+## 9. TacticalRMM
 
 **Sposób połączenia TacticalRMM** otwiera pulpit zdalny komputera przez TacticalRMM (Mesh) - bez zabierania sesji jak RDP: użytkownik widzi na ekranie, co robisz. Program znajduje agenta po nazwie hosta przez API TacticalRMM i otwiera stronę przejcia do pulpitu w przeglądarce.
 
@@ -149,7 +162,7 @@ Adresy można też rozdać centralnie przez rejestr (**HKCU\\Software\\Narzedzia
 
 Program może działać wprost z sharea sieciowego: przy aktualizacji działający plik jest odsuwany na bok (*\*.old*), więc druga osoba może w tym czasie pracować na starej wersji, a resztki sprzątane są przy starcie.
 
-## 9. Zakładka: Ustawienia
+## 10. Zakładka: Ustawienia
 
 **Serwer DHCP:** adres używany do wszystkich wyszukiwań. Przycisk **Sprawdź** weryfikuje połączenie i po sukcesie zapamiętuje adres na stałe (również między uruchomieniami).
 

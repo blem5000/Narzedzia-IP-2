@@ -664,19 +664,7 @@ namespace NarzedziaIP
             {
                 try
                 {
-                    List<string> scopes;
-                    List<string> cached;
-                    if (DhcpClient.TryGetCachedScopes(dhcpServer, TimeSpan.FromMinutes(DhcpClient.ScopeCacheMinutes), out cached))
-                    {
-                        scopes = cached;
-                    }
-                    else
-                    {
-                        string scopesOutput = await DhcpClient.RunPowerShellAsync(
-                            DhcpClient.BuildScopesCommand(dhcpServer), 15000, cts.Token).ConfigureAwait(false);
-                        scopes = DhcpClient.ParseScopeIds(scopesOutput);
-                        DhcpClient.StoreScopes(dhcpServer, scopes);
-                    }
+                    List<string> scopes = await GetDhcpScopesAsync(dhcpServer, cts.Token).ConfigureAwait(false);
 
                     List<List<string>> chunks = DhcpClient.Partition(scopes, DhcpClient.MaxParallelScopes);
                     List<Task<List<DhcpLease>>> tasks = chunks
@@ -692,6 +680,20 @@ namespace NarzedziaIP
                     );
                 }
             }
+        }
+
+        // Zakresy DHCP serwera (z cache na 10 minut).
+        private async Task<List<string>> GetDhcpScopesAsync(string dhcpServer, CancellationToken token)
+        {
+            List<string> cached;
+            if (DhcpClient.TryGetCachedScopes(dhcpServer, TimeSpan.FromMinutes(DhcpClient.ScopeCacheMinutes), out cached))
+                return cached;
+
+            string scopesOutput = await DhcpClient.RunPowerShellAsync(
+                DhcpClient.BuildScopesCommand(dhcpServer), 15000, token).ConfigureAwait(false);
+            List<string> scopes = DhcpClient.ParseScopeIds(scopesOutput);
+            DhcpClient.StoreScopes(dhcpServer, scopes);
+            return scopes;
         }
 
         private static async Task<List<DhcpLease>> QueryScopesChunkAsync(string dhcpServer, string hostname, List<string> scopeIds, CancellationToken cancel)
@@ -862,14 +864,25 @@ namespace NarzedziaIP
 
             try
             {
+                // Stan sprzed pomiaru - do wykrycia zmiany up/down.
+                Dictionary<PingRow, bool?> previousStates = new Dictionary<PingRow, bool?>();
+                Dictionary<PingRow, DateTime?> previousChange = new Dictionary<PingRow, DateTime?>();
+                foreach (PingRow r in rows)
+                {
+                    previousStates[r] = r.LastOk;
+                    previousChange[r] = r.LastStateChangeAt;
+                }
+
                 bool[] oks = await Task.WhenAll(rows.Select(r => PingRowOnceAsync(r)));
 
                 bool anyOk = false;
                 bool anyFail = false;
-                foreach (bool o in oks)
+                for (int i = 0; i < rows.Count; i++)
                 {
-                    if (o) anyOk = true;
+                    if (oks[i]) anyOk = true;
                     else anyFail = true;
+
+                    LogPingStateChange(rows[i], previousStates[rows[i]], previousChange[rows[i]], oks[i]);
                 }
 
                 if (anyOk)
@@ -915,6 +928,62 @@ namespace NarzedziaIP
             {
                 row.Record(false, 0, -1);
                 return false;
+            }
+        }
+
+        // Zapisuje zmiane stanu (up/down) do logu zdarzen.
+        private void LogPingStateChange(PingRow row, bool? previous, DateTime? previousChange, bool nowUp)
+        {
+            try
+            {
+                if (!IsPingEventLogEnabled())
+                    return;
+                if (!PingEventLog.LogTransition(PingEventLog.DefaultPath(), DateTime.Now,
+                        row.Display, row.Ip, previous, previousChange, nowUp))
+                    return;
+
+                try
+                {
+                    string msg = (nowUp ? "Wrocil: " : "Zniknal: ") + row.Display;
+                    txtPingSummary.Text = string.IsNullOrWhiteSpace(txtPingSummary.Text)
+                        ? msg
+                        : msg + Environment.NewLine + txtPingSummary.Text;
+                }
+                catch (Exception err) { AppLog.Error(err); }
+            }
+            catch (Exception err)
+            {
+                AppLog.Error(err);
+            }
+        }
+
+        private bool IsPingEventLogEnabled()
+        {
+            try { return chkPingEventLog != null && chkPingEventLog.IsChecked == true; }
+            catch (Exception err) { AppLog.Error(err); return false; }
+        }
+
+        // Otwiera plik z logiem zdarzen (albo go tworzy, jesli nie istnieje).
+        private void btnOpenPingEventLog_Click(object sender, RoutedEventArgs e)
+        {
+            string path = PingEventLog.DefaultPath();
+            try
+            {
+                if (!System.IO.File.Exists(path))
+                {
+                    MessageBox.Show(this,
+                        "Log zdarzeń jest jeszcze pusty.\n\nPlik powstanie tutaj:\n" + path,
+                        "Log zdarzeń ping", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("btnOpenPingEventLog_Click", ex);
+                MessageBox.Show(this,
+                    "Nie udało się otworzyć logu:\n\n" + path,
+                    "Log zdarzeń ping", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 

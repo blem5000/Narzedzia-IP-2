@@ -104,7 +104,11 @@
     <Compile Include="MainWindow.Dhcp.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MainWindow.Lookup.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="PingHelper.cs" />
+    <Compile Include="PingEventLog.cs" />
     <Compile Include="PingMonitor.cs" />
     <Compile Include="TacticalRmm.cs" />
     <Compile Include="RemoteConnect.cs" />

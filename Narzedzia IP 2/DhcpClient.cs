@@ -16,6 +16,26 @@ namespace NarzedziaIP
         public string MacAddress { get; set; }
     }
 
+    // Rezerwacja DHCP (adres przypisany do komputera na stałe, host moze
+    // byc wylaczony). Opis to zwykle wskazanie wlasciciela lub roli.
+    public sealed class DhcpReservation
+    {
+        public string HostName { get; set; }
+        public string IPAddress { get; set; }
+        public string Description { get; set; }
+    }
+
+    // Wynik wyszukiwania wstecznego (po adresie IP): komputer, ktory
+    // aktualnie ma ten adres (dzierzawa) albo jest na niego zarezerwowany.
+    public sealed class LookupResult
+    {
+        public string IPAddress { get; set; }
+        public string HostName { get; set; }
+        public string MacAddress { get; set; }
+        public string Kind { get; set; }
+        public string Description { get; set; }
+    }
+
     // Zapytania DHCP przez powershell.exe, wydzielone z MainWindow.
     // Czyste parsowanie + cache zakresów są testowalne bez serwera DHCP.
     public static class DhcpClient
@@ -76,6 +96,29 @@ namespace NarzedziaIP
                     HostName = parts[0].Trim(),
                     IPAddress = parts[1].Trim(),
                     MacAddress = parts[2].Trim()
+                });
+            }
+            return result;
+        }
+
+        // Parsuje rezerwacje (nazwa \t ip \t opis). Opis moze byc pusty,
+        // wiec wymagamy conajmniej dwoch kolumn.
+        public static List<DhcpReservation> ParseReservationLines(string output)
+        {
+            List<DhcpReservation> result = new List<DhcpReservation>();
+            if (string.IsNullOrWhiteSpace(output))
+                return result;
+            string[] lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string line in lines)
+            {
+                string[] parts = line.Split('\t');
+                if (parts.Length < 2)
+                    continue;
+                result.Add(new DhcpReservation
+                {
+                    HostName = parts[0].Trim(),
+                    IPAddress = parts[1].Trim(),
+                    Description = parts.Length > 2 ? parts[2].Trim() : string.Empty
                 });
             }
             return result;
@@ -178,11 +221,61 @@ namespace NarzedziaIP
                 + "}\r\n";
         }
 
+        // Wyszukiwanie WSTECZNE: dzierżawy dla konkretnego adresu IP.
+        // Ten sam format wyjscia co BuildScopeLeasesCommand, tylko filtr
+        // po adresie zamiast po nazwie hosta.
+        public static string BuildScopeLeasesByIpCommand(string dhcpServer, IEnumerable<string> scopeIds, string ip)
+        {
+            string safeServer = EscapePowerShellSingleQuotedString(dhcpServer);
+            string safeIp = EscapePowerShellSingleQuotedString(ip);
+            List<string> ids = (scopeIds ?? Enumerable.Empty<string>())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => "'" + EscapePowerShellSingleQuotedString(s.Trim()) + "'")
+                .ToList();
+            return "$ErrorActionPreference = 'Stop'\r\n"
+                + "$server = '" + safeServer + "'\r\n"
+                + "$targetIP = '" + safeIp + "'\r\n"
+                + "$scopeIds = @(" + string.Join(", ", ids) + ")\r\n"
+                + "foreach ($scopeId in $scopeIds) {\r\n"
+                + "try {\r\n"
+                + "Get-DhcpServerv4Lease -ComputerName $server -ScopeId $scopeId -ErrorAction Stop |\r\n"
+                + "Where-Object { $_.IPAddress -and $_.IPAddress.IPAddressToString -eq $targetIP } |\r\n"
+                + "ForEach-Object {\r\n"
+                + "    $ip = $_.IPAddress.IPAddressToString\r\n"
+                + "    if ([string]::IsNullOrWhiteSpace($ip)) { $ip = $_.IPAddress.ToString() }\r\n"
+                + "    Write-Output ($_.HostName + \"`t\" + $ip + \"`t\" + $_.ClientId)\r\n"
+                + "}\r\n"
+                + "} catch { }\r\n"
+                + "}\r\n";
+        }
+
+        // Rezerwacje DHCP dla konkretnego adresu IP (adres moze byc
+        // zarezerwowany, a host wylaczony - wtedy nie ma dzierżawy, ale
+        // rezerwacja wskazuje komputera). Format: nazwa \t ip \t opis.
+        public static string BuildReservationsByIpCommand(string dhcpServer, string ip)
+        {
+            string safeServer = EscapePowerShellSingleQuotedString(dhcpServer);
+            string safeIp = EscapePowerShellSingleQuotedString(ip);
+            return "$ErrorActionPreference = 'Stop'\r\n"
+                + "$server = '" + safeServer + "'\r\n"
+                + "$targetIP = '" + safeIp + "'\r\n"
+                + "Get-DhcpServerv4Reservation -ComputerName $server -ErrorAction Stop |\r\n"
+                + "Where-Object { $_.IPAddress -and $_.IPAddress.IPAddressToString -eq $targetIP } |\r\n"
+                + "ForEach-Object {\r\n"
+                + "    $ip = $_.IPAddress.IPAddressToString\r\n"
+                + "    if ([string]::IsNullOrWhiteSpace($ip)) { $ip = $_.IPAddress.ToString() }\r\n"
+                + "    $name = $_.HostName\r\n"
+                + "    if ([string]::IsNullOrWhiteSpace($name)) { $name = '' }\r\n"
+                + "    $desc = $_.Description\r\n"
+                + "    if ($null -eq $desc) { $desc = '' }\r\n"
+                + "    Write-Output ($name + \"`t\" + $ip + \"`t\" + $desc)\r\n"
+                + "}\r\n";
+        }
+
         // Rezerwacja DHCP dla konkretnego IP. Skrypt wypisuje 'FOUND' albo
         // 'NOTFOUND' - czytelne rozpoznanie bez polegania na kod wyjscia.
         public static string BuildReservationCommand(string dhcpServer, string ip)
-        {
-            string safeServer = EscapePowerShellSingleQuotedString(dhcpServer);
+        {            string safeServer = EscapePowerShellSingleQuotedString(dhcpServer);
             string safeIp = EscapePowerShellSingleQuotedString(ip);
             return "$ErrorActionPreference = 'Stop'\r\n"
                 + "$server = '" + safeServer + "'\r\n"

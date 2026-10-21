@@ -15,11 +15,17 @@ na Windows.
 - **Wyszukiwanie w DHCP** — hostname → IP/MAC przez `Get-DhcpServerv4Lease`.
   Zakresy odpytywane są paczkami (4 procesy PowerShell równolegle), wynik
   jest cache'owany na 10 minut.
+- **Wyszukiwanie wsteczne** — IP → nazwa hosta (zakładka „Po adresie IP").
+  Sprawdza dzierżawy (host włączony) i rezerwacje (adres przypisany na
+  stałe, host może być wyłączony — opis rezerwacji mówi zwykle, kto odbiera).
 - **Weryfikacja aktywności** — po odnaleziu lease'a robiony jest ping;
   nieaktywne adresy trafiają na listę „nieaktywne".
 - **Ostrzeżenie DNS vs DHCP** — wykrywa rozjazd adresu w DNS i w DHCP.
 - **Ping wielourządzeniowy** — tabela z kolorowanymi wierszami, min/średnia/max,
   TTL, procent powodzeń; dźwięk przy zmianie stanu.
+- **Log zdarzeń up/down** — każda zmiana stanu monitorowanego hosta
+  (znikł / wrócił) trafia do `ping-wydarzenia.csv` wraz z czasem trwania
+  poprzedniego stanu. Gotowy materiał do zgłoszenia „sieć padała o 14:32".
 - **MSRA / RDP** — uruchamia zdalny pulpit na znalezionym adresie.
 - **TacticalRMM** — rozwiązuje hostname do `agent_id` i otwiera deep-link
   do pulpitu Mesh (`{dashboard}/takecontrol/{agent_id}`). Pokazuje status
@@ -74,6 +80,8 @@ TacticalRMM-config-TEMPLATE.reg   szablon konfiguracji firmowej (HKCU)
 | `MainWindow.Dhcp.cs` | test łączności z serwerem DHCP w tle |
 | `MainWindow.Update.cs` | przycisk „sprawdź aktualizacje", okno aktualizacji, „Log błędów" |
 | `DhcpClient.cs` | budowa komend PowerShell, parsowanie odpowiedzi, cache zakresów |
+| `MainWindow.Lookup.cs` | wyszukiwanie wsteczne: IP → nazwa hosta (dzierżawy + rezerwacje) |
+| `PingEventLog.cs` | log zmian stanu up/down (`ping-wydarzenia.csv`) |
 | `PingHelper.cs` / `PingMonitor.cs` | ping i statystyki (`PingStats`, `PingRow`) |
 | `TacticalRmm.cs` | REST API TacticalRMM, parsowanie, cache agentów |
 | `ConnectMethod.cs` | sposób połączenia (MSRA / RDP / TacticalRMM) — zapamiętywany w ustawieniach |

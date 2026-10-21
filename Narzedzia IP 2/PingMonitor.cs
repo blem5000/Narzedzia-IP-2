@@ -28,6 +28,10 @@ namespace NarzedziaIP
         public void Record(bool success, long rttMs, int ttl)
         {
             _stats.Record(success, rttMs);
+            // Zmiana stanu (up<->down) - zapamietujemy kiedy nastapila,
+            // zeby policzyc jak dlugo trwal poprzedni stan.
+            if (!LastOk.HasValue || LastOk.Value != success)
+                LastStateChangeAt = DateTime.Now;
             LastOk = success;
             if (success)
             {
@@ -58,6 +62,10 @@ namespace NarzedziaIP
 
         public bool? LastOk { get; private set; }
         public int LastTtl { get; private set; }
+
+        // Kiedy ostatnio zmienil sie stan (up<->down). null = jeszcze nie
+        // wiadomo (pierwszy pomiar).
+        public DateTime? LastStateChangeAt { get; private set; }
 
         public double AvgTtl
         {
